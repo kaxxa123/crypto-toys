@@ -140,12 +140,12 @@ export function groupInverses(fieldN: number, verbose: boolean = false): boolean
 
 // Compute val**pow using the Square and Multiply Algorithm where everything is caller defined
 // square and multiply operations are also distinct lambdas 
-export function sqrAndMultEx(
-                    identity: number, 
-                    val: number,                    
+export function sqrAndMultEx<T>(
+                    identity: T, 
+                    val: T,                    
                     pow: number, 
-                    square:   (a: number, b: number) => number, 
-                    multiply: (a: number, b: number) => number)    {
+                    square:   (a: T, b: T) => T, 
+                    multiply: (a: T, b: T) => T): T {
 
     //Produce a MASK for filtering out the MSB
     let msbMask = (x: number) => {
@@ -180,11 +180,11 @@ export function sqrAndMultEx(
 
 // Compute val**pow using the Square and Multiply Algorithm
 // Most often sqr=num*num so this simplified helper only has the multiply lambda
-export function sqrAndMult(
-                    identity: number, 
-                    val: number,                    
+export function sqrAndMult<T>(
+                    identity: T, 
+                    val: T,                    
                     pow: number, 
-                    multiply:   (a: number, b: number) => number)    {
+                    multiply: (a: T, b: T) => any): T {
     return sqrAndMultEx(identity, val, pow, multiply, multiply);
 }
 
@@ -200,8 +200,16 @@ export function pointsEquals(ptA: number[], ptB: number[]): boolean {
   
 // Lookup for points on an EC: y**2  % n = (x**3 + A*x + B) % n
 // ...by trying out all combinations
-export function findpoints(fieldN: number, coeffA: number, coeffB: number, verbose: boolean = false): number[][] {
+export function findpoints(
+                fieldN: number, 
+                coeffA: number, 
+                coeffB: number, 
+                verbose: boolean = false): number[][] {
     let out = [[0]];
+
+    //Zero/Point at Infinity is always present
+    if (verbose) 
+        console.log('(0)');
 
     // Compute all possible y**2 values
     let y = []; 
@@ -219,7 +227,8 @@ export function findpoints(fieldN: number, coeffA: number, coeffB: number, verbo
 
        //Because of the EC symmetry we should find two y values
        while (yIdx >= 0) {
-           if (verbose) console.log(`(${x}, ${yIdx})`);
+           if (verbose) 
+                console.log(`(${x}, ${yIdx})`);
 
            out.push([x,yIdx]);
            yIdx = y.indexOf(temp, yIdx+1);
@@ -227,5 +236,112 @@ export function findpoints(fieldN: number, coeffA: number, coeffB: number, verbo
     }
 
     return out;
- }
- 
+}
+
+// Compute P+P over an EC: y**2  % n = (x**3 + A*x + B) % n
+// where    m = (3x**2 + A) (2y)**-1
+//       x_2P = m*m - 2x
+//       y_2P = m(x - x_2P) - y
+//
+// WARNING: function does not verify that the supplied point is actually on the curve!
+export function ec2P(
+                fieldN: number, 
+                coeffA: number, 
+                ptP: number[], 
+                verbose: boolean = false): number[] {
+
+    let compute2P = (fieldN: number, coeffA: number, ptP: number[]): number[] => {
+        //0 + 0 = 0
+        if (pointsEquals(ptP, [0]))
+            return [0];
+
+        //y symetry => when y = 0, 2P = 0 
+        if (ptP[1] == 0)
+            return [0];
+
+        let inv2y = inverse(posmod(2*ptP[1], fieldN),fieldN, true);
+        let m  = posmod(posmod(3*(ptP[0]**2) + coeffA, fieldN)*inv2y,fieldN);
+        let x2 = posmod(m**2 -2*ptP[0], fieldN);
+        let y2 = posmod(m*(ptP[0]-x2)-ptP[1], fieldN);
+        return [x2,y2];
+    }
+    
+    let pt2P = compute2P(fieldN, coeffA, ptP);
+
+    if (verbose) 
+        console.log(`2P = (${ptP}) + (${ptP}) = (${pt2P})`);
+
+    return pt2P;
+}
+
+// Compute P+P over an EC: y**2  % n = (x**3 + A*x + B) % n
+// where    m = (y2 – y1)*(x2 – x1)**-1
+//       x_PQ = m*m - x1 - x2)
+//       y_PQ = m(x1 - x_PQ) - y1
+//
+// WARNING: function does not verify that the supplied point is actually on the curve!
+// WARNING: function does not support doubling the same point!
+export function ecPplusQ(
+                    fieldN: number,
+                    ptP: number[],
+                    ptQ: number[], 
+                    verbose: boolean = false): number[] {
+
+    let computePplusQ = (fieldN: number, 
+                        ptP: number[], 
+                        ptQ: number[], 
+                        verbose: boolean): number[] => {                        
+
+        if (pointsEquals(ptP,ptQ))                                              
+            throw "Compute 2P using ec2P.";                    //Function cannot handle point doubling
+                
+        if (pointsEquals(ptP, [0]))     return ptQ;
+        if (pointsEquals(ptQ, [0]))     return ptP;
+        if (ptP[0] == ptQ[0])           return [0];              //PX = QX -> Points on a vertical line return Zero
+
+        let y2_minus_y1 = posmod(ptQ[1]-ptP[1], fieldN);
+        let x2_minus_x1 = posmod(ptQ[0]-ptP[0], fieldN);
+        let inv         = inverse(x2_minus_x1, fieldN, false);
+        let m           = posmod(y2_minus_y1*inv, fieldN);
+        let x3          = posmod(m**2-ptP[0]-ptQ[0], fieldN);
+        let y3          = posmod(m*(ptP[0]-x3)-ptP[1], fieldN);
+
+        return [x3,y3];
+    }
+
+    let ptPQ = computePplusQ(fieldN, ptP, ptQ, verbose);
+
+    if (verbose) 
+        console.log(`P+Q = (${ptP}) + (${ptQ}) = (${ptPQ})`);
+
+    return ptPQ;
+}
+
+// Compute P+P over an EC: y**2  % n = (x**3 + A*x + B) % n
+// where    m = (y2 – y1)*(x2 – x1)**-1
+//       x_PQ = m*m - x1 - x2)
+//       y_PQ = m(x1 - x_PQ) - y1
+//
+// WARNING: function does not verify that the supplied point is actually on the curve!
+export function ecAdd(
+                    fieldN: number, 
+                    coeffA: number, 
+                    ptP: number[], 
+                    ptQ: number[], 
+                    verbose: boolean = false): number[] {
+    if (pointsEquals(ptP, [0]))    return ptQ;
+    if (pointsEquals(ptQ, [0]))    return ptP;
+    if (pointsEquals(ptP, ptQ))    return ec2P(fieldN, coeffA, ptP, verbose);
+    return ecPplusQ(fieldN, ptP, ptQ, verbose);
+}
+
+// Compute m*P over an EC: y**2  % n = (x**3 + A*x + B) % n
+// WARNING: function does not verify that the supplied point is actually on the curve!
+export function ecMultiply(
+                    fieldN: number, 
+                    coeffA: number, 
+                    multiplier: number, 
+                    ptP: number[], 
+                    verbose: boolean = false): number[] {
+    return sqrAndMult([0], ptP, multiplier, (ptA: number[], ptB: number[]): number[] => ecAdd(fieldN, coeffA, ptA, ptB, verbose));
+}

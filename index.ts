@@ -119,6 +119,111 @@ yargs.command({
     }
 });
 
+yargs.command({
+    command: "ec2p",
+    describe: "EC point doubling",
+    builder: {
+        fieldN: {
+            describe: "N defining the (mod N) arithmetic",
+            demandOption: true,
+            type: "number"
+        },
+        coeffA: {
+            describe: "Elliptic Curve A coefficient",
+            demandOption: true,
+            type: "number"
+        },
+        xpt: {
+            describe: "point x coordinate",
+            demandOption: true,
+            type: "number"
+        },
+        ypt: {
+            describe: "point y coordinate",
+            demandOption: true,
+            type: "number"
+        }
+    },
+    handler: function (argv: any) {
+        TOYS.ec2P(argv.fieldN, argv.coeffA, [argv.xpt, argv.ypt], true)   
+    }
+});
+
+yargs.command({
+    command: "ecadd",
+    describe: "EC point addition",
+    builder: {
+        fieldN: {
+            describe: "N defining the (mod N) arithmetic",
+            demandOption: true,
+            type: "number"
+        },
+        coeffA: {
+            describe: "Elliptic Curve A coefficient",
+            demandOption: true,
+            type: "number"
+        },
+        xPpt: {
+            describe: "point P x coordinate",
+            demandOption: true,
+            type: "number"
+        },
+        yPpt: {
+            describe: "point P y coordinate",
+            demandOption: true,
+            type: "number"
+        },
+        xQpt: {
+            describe: "point Q x coordinate",
+            demandOption: true,
+            type: "number"
+        },
+        yQpt: {
+            describe: "point Q y coordinate",
+            demandOption: true,
+            type: "number"
+        }        
+    },
+    handler: function (argv: any) {
+        TOYS.ecAdd(argv.fieldN, argv.coeffA, [argv.xPpt, argv.yPpt], [argv.xQpt, argv.yQpt], true)   
+    }
+});
+
+yargs.command({
+    command: "ecmultiply",
+    describe: "EC point multiplication",
+    builder: {
+        fieldN: {
+            describe: "N defining the (mod N) arithmetic",
+            demandOption: true,
+            type: "number"
+        },
+        coeffA: {
+            describe: "Elliptic Curve A coefficient",
+            demandOption: true,
+            type: "number"
+        },
+        multiplier: {
+            describe: "point multiplier (m) in m*P",
+            demandOption: true,
+            type: "number"
+        },
+        xpt: {
+            describe: "point x coordinate",
+            demandOption: true,
+            type: "number"
+        },
+        ypt: {
+            describe: "point y coordinate",
+            demandOption: true,
+            type: "number"
+        }
+    },
+    handler: function (argv: any) {
+        TOYS.ecMultiply(argv.fieldN, argv.coeffA, argv.multiplier, [argv.xpt, argv.ypt], true)   
+    }
+});
+
 try {
     yargs.parse();
 }
