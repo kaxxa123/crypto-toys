@@ -3,6 +3,37 @@ import * as yargs from 'yargs'
 
 yargs.version("1.1.0")
 
+//Define common yargs parameters that are used in multiple commands
+const fieldNOption: yargs.Options = {
+    describe: "N defining the (mod N) arithmetic",
+    demandOption: true,
+    type: "number"
+}
+
+const coeffAOption: yargs.Options = {
+    describe: "Elliptic Curve A coefficient",
+    demandOption: true,
+    type: "number"
+}
+
+const coeffBOption: yargs.Options = {
+    describe: "Elliptic Curve B coefficient",
+    demandOption: true,
+    type: "number"
+}
+
+const xptOption: yargs.Options = {
+    describe: "point x coordinate",
+    demandOption: true,
+    type: "number"
+}
+
+const yptOption: yargs.Options = {
+    describe: "point y coordinate",
+    demandOption: true,
+    type: "number"
+}
+
 yargs.command({
     command: "isGenerator",
     describe: "Check if alpha is a generator for group over fieldN",
@@ -12,14 +43,10 @@ yargs.command({
             demandOption: true,
             type: "number"
         },
-        fieldN: {
-            describe: "N defining the (mod N) arithmetic",
-            demandOption: true,
-            type: "number"
-        }
+        fieldN: fieldNOption
     },
     handler: function (argv: any) {
-        TOYS.isGenerator(argv.alpha, argv.fieldN, true)
+        TOYS.isGenerator(argv.fieldN, argv.alpha, true)
     }
 });
 
@@ -27,11 +54,7 @@ yargs.command({
     command: "getGenerators",
     describe: "Get all generators for group over fieldN",
     builder: {
-        fieldN: {
-            describe: "N defining the (mod N) arithmetic",
-            demandOption: true,
-            type: "number"
-        }
+        fieldN: fieldNOption
     },
     handler: function (argv: any) {
         TOYS.getGenerators(argv.fieldN, true)
@@ -67,14 +90,10 @@ yargs.command({
             demandOption: true,
             type: "number"
         },
-        fieldN: {
-            describe: "N defining the (mod N) arithmetic",
-            demandOption: true,
-            type: "number"
-        }
+        fieldN: fieldNOption
     },
     handler: function (argv: any) {
-        TOYS.inverse(argv.value, argv.fieldN, true)    
+        TOYS.inverse(argv.fieldN, argv.value, true)    
     }
 });
 
@@ -82,11 +101,7 @@ yargs.command({
     command: "groupInverses",
     describe: "Check if all values [1,N-1] have an inverse satisfying Group properties",
     builder: {
-        fieldN: {
-            describe: "N defining the (mod N) arithmetic",
-            demandOption: true,
-            type: "number"
-        }
+        fieldN: fieldNOption
     },
     handler: function (argv: any) {
         TOYS.groupInverses(argv.fieldN, true)    
@@ -97,25 +112,12 @@ yargs.command({
     command: "ecpoints",
     describe: "Find all points for the given EC: y**2  = (x**3 + coeffA*x + coeffB) (% fieldN)",
     builder: {
-        fieldN: {
-            describe: "N defining the (mod N) arithmetic",
-            demandOption: true,
-            type: "number"
-        },
-        coeffA: {
-            describe: "Elliptic Curve A coefficient",
-            demandOption: true,
-            type: "number"
-        },
-        coeffB: {
-            describe: "Elliptic Curve B coefficient",
-            demandOption: true,
-            type: "number"
-        }
-
+        fieldN: fieldNOption,
+        coeffA: coeffAOption,
+        coeffB: coeffBOption,
     },
     handler: function (argv: any) {
-        TOYS.findpoints(argv.fieldN, argv.coeffA, argv.coeffB, true)   
+        TOYS.ecpoints(argv.fieldN, argv.coeffA, argv.coeffB, true)   
     }
 });
 
@@ -123,26 +125,10 @@ yargs.command({
     command: "ec2p",
     describe: "EC point doubling",
     builder: {
-        fieldN: {
-            describe: "N defining the (mod N) arithmetic",
-            demandOption: true,
-            type: "number"
-        },
-        coeffA: {
-            describe: "Elliptic Curve A coefficient",
-            demandOption: true,
-            type: "number"
-        },
-        xpt: {
-            describe: "point x coordinate",
-            demandOption: true,
-            type: "number"
-        },
-        ypt: {
-            describe: "point y coordinate",
-            demandOption: true,
-            type: "number"
-        }
+        fieldN: fieldNOption,
+        coeffA: coeffAOption,
+        xpt: xptOption,
+        ypt: yptOption
     },
     handler: function (argv: any) {
         TOYS.ec2P(argv.fieldN, argv.coeffA, [argv.xpt, argv.ypt], true)   
@@ -153,16 +139,8 @@ yargs.command({
     command: "ecadd",
     describe: "EC point addition",
     builder: {
-        fieldN: {
-            describe: "N defining the (mod N) arithmetic",
-            demandOption: true,
-            type: "number"
-        },
-        coeffA: {
-            describe: "Elliptic Curve A coefficient",
-            demandOption: true,
-            type: "number"
-        },
+        fieldN: fieldNOption,
+        coeffA: coeffAOption,
         xPpt: {
             describe: "point P x coordinate",
             demandOption: true,
@@ -193,34 +171,90 @@ yargs.command({
     command: "ecmultiply",
     describe: "EC point multiplication",
     builder: {
-        fieldN: {
-            describe: "N defining the (mod N) arithmetic",
-            demandOption: true,
-            type: "number"
-        },
-        coeffA: {
-            describe: "Elliptic Curve A coefficient",
-            demandOption: true,
-            type: "number"
-        },
+        fieldN: fieldNOption,
+        coeffA: coeffAOption,
+        xpt: xptOption,
+        ypt: yptOption,
         multiplier: {
             describe: "point multiplier (m) in m*P",
-            demandOption: true,
-            type: "number"
-        },
-        xpt: {
-            describe: "point x coordinate",
-            demandOption: true,
-            type: "number"
-        },
-        ypt: {
-            describe: "point y coordinate",
             demandOption: true,
             type: "number"
         }
     },
     handler: function (argv: any) {
         TOYS.ecMultiply(argv.fieldN, argv.coeffA, argv.multiplier, [argv.xpt, argv.ypt], true)   
+    }
+});
+
+yargs.command({
+    command: "ecinverse",
+    describe: "EC point inversion",
+    builder: {
+        fieldN: fieldNOption,
+        xpt: xptOption,
+        ypt: yptOption,
+    },
+    handler: function (argv: any) {
+        TOYS.ecInverse(argv.fieldN, [argv.xpt, argv.ypt], true)   
+    }
+});
+
+yargs.command({
+    command: "eccycle",
+    describe: "EC cycle for given point",
+    builder: {
+        fieldN: fieldNOption,
+        coeffA: coeffAOption,
+        xpt: xptOption,
+        ypt: yptOption,
+    },
+    handler: function (argv: any) {
+        const cycle = TOYS.ecCycle(argv.fieldN, argv.coeffA, [argv.xpt, argv.ypt], false)
+        TOYS.ecShowCycles([cycle])
+    }
+});
+
+yargs.command({
+    command: "ecgetcycles",
+    describe: "EC get cycle for each point",
+    builder: {
+        fieldN: fieldNOption,
+        coeffA: coeffAOption,
+        coeffB: coeffBOption,
+    },
+    handler: function (argv: any) {
+        const cycles = TOYS.ecUniqueCycles(argv.fieldN, argv.coeffA, argv.coeffB, false)   
+        TOYS.ecShowCycles(cycles)
+    }
+});
+
+yargs.command({
+    command: "eccycleproduct",
+    describe: "EC cycle product Cn * Cm",
+    builder: {
+        fieldN: fieldNOption,
+        coeffA: coeffAOption,
+        coeffB: coeffBOption,
+        cn: {
+            describe: "Index of Cn cycle as returned by ecgetcycles",
+            demandOption: true,
+            type: "number"
+        },
+        cm: {
+            describe: "Index of Cm cycle as returned by ecgetcycles",
+            demandOption: true,
+            type: "number"
+        }
+    },
+    handler: function (argv: any) {
+        const cycle = TOYS.ecCnxCm(argv.fieldN, argv.coeffA, argv.coeffB, argv.cn, argv.cm, false)   
+        TOYS.ecShowCycles([cycle])
+
+        console.log()
+        let points = TOYS.ecpoints(argv.fieldN, argv.coeffA, argv.coeffB)
+        if (TOYS.compareSets(points, cycle, false))
+                console.log(`C${argv.cn} * C${argv.cm} produces same points as EC group`)
+        else    console.log(`C${argv.cn} * C${argv.cm} DOES NOT produce same points as EC group`)
     }
 });
 

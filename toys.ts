@@ -12,7 +12,7 @@ export function posmod(value: number, fieldN: number): number {
 //
 // Furhtermore, other group elements will also generate a cycle whose order is 
 // equal to the first n that produces the identity element
-export function isGenerator(alpha: number, fieldN: number, verbose: boolean = false): boolean {
+export function isGenerator(fieldN: number, alpha: number, verbose: boolean = false): boolean {
 
     if (fieldN < 3)
         throw "fieldN must be 3 or greater";
@@ -46,7 +46,7 @@ export function getGenerators(fieldN: number, verbose: boolean = false): number[
         throw "fieldN must be 3 or greater";
 
     for (let alpha = 1; alpha<fieldN; ++alpha) {
-        if (isGenerator(alpha, fieldN, verbose))
+        if (isGenerator(fieldN, alpha, verbose))
             gens.push(alpha)
 
         if (verbose) console.log()
@@ -72,13 +72,13 @@ export function gcd(aValue: number, bValue: number): number {
 
 // Compute inverse using the Extended Euclidean Algorithm
 // gcd(a,n)  = n*s + a*t
-export function inverse(value: number, fieldN: number, verbose: boolean = false): number {
+export function inverse(fieldN: number, value: number, verbose: boolean = false): number {
 
     if ((value <= 0) || (fieldN <= 0)) 
         throw "value and fieldN must be greater than zero";
 
     if (value >= fieldN)
-        throw "value should be smaller than fieldN";
+        throw `value (${value}) should be smaller than fieldN (${fieldN})`;
     
     const initialV = value;
     const initialN = fieldN; 
@@ -132,7 +132,7 @@ export function groupInverses(fieldN: number, verbose: boolean = false): boolean
         throw "fieldN must be greater than zero";
 
     for (let value = 1; value < fieldN; ++value)
-        inverse(value, fieldN, verbose)
+        inverse(fieldN, value, verbose)
 
     //If the inverse calls don't throw, than all checks succeeded
     return true;
@@ -200,7 +200,7 @@ export function pointsEquals(ptA: number[], ptB: number[]): boolean {
   
 // Lookup for points on an EC: y**2  % n = (x**3 + A*x + B) % n
 // ...by trying out all combinations
-export function findpoints(
+export function ecpoints(
                 fieldN: number, 
                 coeffA: number, 
                 coeffB: number, 
@@ -259,7 +259,7 @@ export function ec2P(
         if (ptP[1] == 0)
             return [0];
 
-        let inv2y = inverse(posmod(2*ptP[1], fieldN),fieldN, true);
+        let inv2y = inverse(fieldN, posmod(2*ptP[1], fieldN), false);
         let m  = posmod(posmod(3*(ptP[0]**2) + coeffA, fieldN)*inv2y,fieldN);
         let x2 = posmod(m**2 -2*ptP[0], fieldN);
         let y2 = posmod(m*(ptP[0]-x2)-ptP[1], fieldN);
@@ -301,7 +301,7 @@ export function ecPplusQ(
 
         let y2_minus_y1 = posmod(ptQ[1]-ptP[1], fieldN);
         let x2_minus_x1 = posmod(ptQ[0]-ptP[0], fieldN);
-        let inv         = inverse(x2_minus_x1, fieldN, false);
+        let inv         = inverse(fieldN, x2_minus_x1, false);
         let m           = posmod(y2_minus_y1*inv, fieldN);
         let x3          = posmod(m**2-ptP[0]-ptQ[0], fieldN);
         let y3          = posmod(m*(ptP[0]-x3)-ptP[1], fieldN);
@@ -344,4 +344,228 @@ export function ecMultiply(
                     ptP: number[], 
                     verbose: boolean = false): number[] {
     return sqrAndMult([0], ptP, multiplier, (ptA: number[], ptB: number[]): number[] => ecAdd(fieldN, coeffA, ptA, ptB, verbose));
+}
+
+// Compute -P over an EC: y**2  % n = (x**3 + A*x + B) % n
+// WARNING: function does not verify that the supplied point is actually on the curve!
+export function ecInverse(fieldN: number, ptP: number[], verbose: boolean = false): number[] {
+
+    let invertP = (fieldN: number, ptP: number[]) => {
+        if (pointsEquals(ptP, [0]))    
+            return ptP;
+            
+        return [ptP[0], posmod(-1*posmod(ptP[1], fieldN), fieldN)];
+    }
+
+    let minusP = invertP(fieldN, ptP)
+
+    if (verbose) 
+        console.log(`-P = (${minusP})`);
+
+    return minusP;
+}
+
+// Given an initial point P, compute 2P, 3P, 4P until the cycle is closed.
+// A point that cycles through ALL group elements is a generator.
+// WARNING: function does not verify that the supplied point is actually on the curve!
+export function ecCycle(
+                    fieldN: number, 
+                    coeffA: number, 
+                    ptP: number[], 
+                    verbose: boolean = false): number[][] {
+
+    let cycle = [ptP];
+    if (verbose) 
+        console.log(`P = (${ptP})`);
+
+    let ptNew = ecAdd(fieldN, coeffA, ptP, ptP, false);
+    while (!pointsEquals(ptNew, ptP))
+    {  
+        if (cycle.length == (fieldN - 1))
+            throw `Unexpected: element order cannot exceed ${(fieldN - 1)}`
+
+        cycle.push(ptNew);
+        if (verbose) 
+            console.log(`${cycle.length}P = (${ptNew})`);
+
+        ptNew = ecAdd(fieldN, coeffA, ptP,ptNew, false);
+    }
+
+    if (verbose)
+        console.log(`Point (${ptP}) has order ${cycle.length}`);
+
+    return cycle;
+}
+
+// For each EC point compute its cycle
+export function ecAllCycles(
+                    fieldN: number, 
+                    coeffA: number, 
+                    coeffB: number, 
+                    verbose: boolean = false): number[][][] {
+
+    let points = ecpoints(fieldN, coeffA, coeffB, false);
+    let allcycles = [];
+
+    for (let cnt = 0; cnt < points.length; ++cnt) {
+
+        //skip the special infinity point = [0]
+        if (points[cnt].length == 1) 
+            continue;
+
+        let onecycle = ecCycle(fieldN, coeffA, points[cnt], false);
+
+        //Verify that all points are in the group
+        onecycle.forEach((pt) => {
+            let idx = points.findIndex((pt2) => pointsEquals(pt,pt2));
+            if (idx < 0) throw "Unexpected: point not found";
+        });
+
+        allcycles.push(onecycle);
+
+        if (verbose)
+            console.log(onecycle)
+    }
+
+    return allcycles;
+}
+
+//Compare if 2 sets have exactly the same elements
+export function compareSets(
+                    set1: number[][], 
+                    set2: number[][], 
+                    verbose: boolean = false): boolean {
+
+    if (set1.length != set2.length) {
+        if (verbose)
+            console.log("Different set lengths");
+
+        return false;
+    }
+
+    //Look for a point in set1, that does NOT exist in set2
+    let idxErr = set1.findIndex((pt, idx1) => {
+        //Find matching point in set2
+        let idx2 = set2.findIndex((pt2) => pointsEquals(pt, pt2) );
+
+        //Terminate if a matching point is NOT found
+        if (idx2 < 0) 
+        {
+            if (verbose)
+                console.log(`Set 1 point not found in Set 2: (${pt})`);
+            return true;
+        }
+
+        //Make sure there is only 1 such point in set1
+        let idx3 = set1.findIndex((ptx) => ((ptx !== pt) && pointsEquals(ptx, pt)), pt);
+
+        //Terminate if repeated point is found
+        if (idx3 >= 0)
+        {
+            if (verbose)
+                console.log(`Duplicate Set 1 point (${pt}) at indexes: ${idx1} and ${idx3}`);
+            return true;
+        }
+
+        if (verbose)
+            console.log(`set1[${idx1}] = set2[${idx2}]: (${set1[idx1]}) = (${set2[idx2]})`);
+    })
+
+    return (idxErr < 0);
+}
+
+// For each EC point compute its cycle, filtering out duplicates.
+export function ecUniqueCycles(
+                    fieldN: number, 
+                    coeffA: number, 
+                    coeffB: number, 
+                    verbose: boolean = false): number[][][] {
+
+    let cycAll = ecAllCycles(fieldN,coeffA,coeffB);
+    let cycOut = [cycAll[0]];
+    let cycIdx = [0];
+
+    if (verbose)
+        console.log(cycAll[0])
+
+    for (let cnt = 1; cnt < cycAll.length; ++cnt) {
+
+        let idx = cycOut.findIndex((aCycle,aCycleIdx) => {
+            if (compareSets(cycAll[cnt], aCycle, false)) {
+                // console.log(`Cycle ${cnt+1} matches Cycle ${aCycleIdx+1}`);
+                return true;               
+            }
+            return false;
+        });
+
+        if (idx  == -1)
+        {
+            cycOut.push(cycAll[cnt]);
+            cycIdx.push(cnt);
+
+            if (verbose)
+                console.log(cycAll[cnt])
+        }
+    }
+    return cycOut;
+}
+
+// Compute Cn X Cm by applying the additive operation defined for EC points
+export function ecCxC(
+                    fieldN: number, 
+                    coeffA: number, 
+                    c1: number[][], 
+                    c2: number[][],
+                    verbose: boolean = false): number[][] {
+
+    let c1xc2: number[][] = [];
+
+    c1.forEach((pt1) => {
+        c2.forEach((pt2) => {
+            c1xc2.push(ecAdd(fieldN, coeffA, pt1, pt2, false));
+        });
+    });
+
+    if (verbose)
+        console.log(c1xc2)
+
+    return c1xc2;
+}
+
+// Compute Cn X Cm by applying the additive operation defined for EC points
+// Here the caller for Cn and Cm simply passes the cyclic group index for
+// the groups returned by ecUniqueCycles.
+export function ecCnxCm(
+    fieldN: number, 
+    coeffA: number, 
+    coeffB: number, 
+    cn: number, 
+    cm: number,
+    verbose: boolean = false): number[][] {
+
+    let cycles = ecUniqueCycles(fieldN, coeffA, coeffB)
+
+    if (cycles.length <= cn)
+        throw `Invalid sub-group index ${cn}`
+
+    if (cycles.length <= cm)
+        throw `Invalid sub-group index ${cm}`
+
+    let c1xc2 = ecCxC(fieldN, coeffA, cycles[cn], cycles[cm], verbose);
+
+    return c1xc2;
+}
+
+// Print out a set of point cycles
+export function ecShowCycles(cycles: number[][][]): void {
+
+    for (let cnt = 0; cnt < cycles.length; ++cnt) {
+        let outstr = "";
+        cycles[cnt].forEach((pt) => {
+            if (outstr.length === 0) 
+                  outstr  = `${cnt}. C${cycles[cnt].length}: (${pt})`;            
+            else  outstr += ` -> (${pt})`;           
+        });
+        console.log(outstr);
+    }
 }
