@@ -253,8 +253,8 @@ yargs.command({
         console.log()
         let points = TOYS.ecpoints(argv.fieldN, argv.coeffA, argv.coeffB)
         if (TOYS.compareSets(points, cycle, false))
-                console.log(`C${argv.cn} * C${argv.cm} produces same points as EC group`)
-        else    console.log(`C${argv.cn} * C${argv.cm} DOES NOT produce same points as EC group`)
+                console.log(`C[${argv.cn}] * C[${argv.cm}] produces same points as EC group`)
+        else    console.log(`C[${argv.cn}] * C[${argv.cm}] DOES NOT produce same points as EC group`)
     }
 });
 

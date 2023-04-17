@@ -191,6 +191,9 @@ export function groupInverses(fieldN: number, verbose: boolean = false): boolean
         inverse(fieldN, value, verbose)
 
     //If the inverse calls don't throw, than all checks succeeded
+    if (verbose)
+        console.log(`Confirmed all elements in set % ${fieldN} have an inverse.`)
+
     return true;
 }
 
