@@ -6,6 +6,62 @@ export function posmod(value: number, fieldN: number): number {
     return ((value%fieldN)+fieldN)%fieldN; 
 }
 
+// Compute val**pow using the Square and Multiply Algorithm where everything is caller defined
+// square and multiply operations are also distinct lambdas 
+export function sqrAndMultEx<T>(
+                    identity: T, 
+                    val: T,                    
+                    pow: number, 
+                    square:   (a: T, b: T) => T, 
+                    multiply: (a: T, b: T) => T): T {
+
+    //Produce a MASK for filtering out the MSB
+    let msbMask = (x: number) => {
+            let mask = 1;   
+            while (x != 0) {
+                x = x >> 1;
+                mask = mask << 1;
+            }
+            return (mask >> 1);
+        }
+   
+    if (pow < 0)        throw "Negative powers not supported";
+    if (pow == 0)       return identity;
+    if (pow == 1)       return val;
+
+    let mask = msbMask(pow);
+    let res  = val;
+
+    do {
+        //We give square 2 params to allow the caller to easily define
+        //both square and multiply are the same function
+        res  = square(res,res);
+        mask = (mask >> 1);
+
+        if ((mask & pow) != 0)
+            res = multiply(res,val);
+
+    } while (mask > 1);
+
+    return res;
+}
+
+// Compute val**pow using the Square and Multiply Algorithm
+// Most often sqr=num*num so this simplified helper only has the multiply lambda
+export function sqrAndMult<T>(
+                    identity: T, 
+                    val: T,                    
+                    pow: number, 
+                    multiply: (a: T, b: T) => any): T {
+    return sqrAndMultEx(identity, val, pow, multiply, multiply);
+}
+
+// Compute (value**power) % fieldN
+// This function better handles large numbers when doing (% n) arithmetic avoiding overflows
+export function raisePower(value: number, pow: number, fieldN: number): number {
+    return sqrAndMult(1, value, pow, (x: number, y:number):number => posmod(x*y,fieldN));
+}
+
 //
 // Given a group over a prime p, a group element alpha is a generator if
 // when computing (alpha**n % p) for n = [1,p-1], it returns all group elements.
@@ -22,7 +78,7 @@ export function isGenerator(fieldN: number, alpha: number, verbose: boolean = fa
 
     let cnt = 1;
     for (; cnt<fieldN; ++cnt) {
-        let element = posmod(alpha**cnt,fieldN)
+        let element = raisePower(alpha, cnt, fieldN);
 
         if (verbose) console.log(`${alpha}**${cnt} = ${element}`);
         if (element == 1) break;
@@ -136,56 +192,6 @@ export function groupInverses(fieldN: number, verbose: boolean = false): boolean
 
     //If the inverse calls don't throw, than all checks succeeded
     return true;
-}
-
-// Compute val**pow using the Square and Multiply Algorithm where everything is caller defined
-// square and multiply operations are also distinct lambdas 
-export function sqrAndMultEx<T>(
-                    identity: T, 
-                    val: T,                    
-                    pow: number, 
-                    square:   (a: T, b: T) => T, 
-                    multiply: (a: T, b: T) => T): T {
-
-    //Produce a MASK for filtering out the MSB
-    let msbMask = (x: number) => {
-            let mask = 1;   
-            while (x != 0) {
-                x = x >> 1;
-                mask = mask << 1;
-            }
-            return (mask >> 1);
-        }
-   
-    if (pow < 0)        throw "Negative powers not supported";
-    if (pow == 0)       return identity;
-    if (pow == 1)       return val;
-
-    let mask = msbMask(pow);
-    let res  = val;
-
-    do {
-        //We give square 2 params to allow the caller to easily define
-        //both square and multiply are the same function
-        res  = square(res,res);
-        mask = (mask >> 1);
-
-        if ((mask & pow) != 0)
-            res = multiply(res,val);
-
-    } while (mask > 1);
-
-    return res;
-}
-
-// Compute val**pow using the Square and Multiply Algorithm
-// Most often sqr=num*num so this simplified helper only has the multiply lambda
-export function sqrAndMult<T>(
-                    identity: T, 
-                    val: T,                    
-                    pow: number, 
-                    multiply: (a: T, b: T) => any): T {
-    return sqrAndMultEx(identity, val, pow, multiply, multiply);
 }
 
 // Check if two points (for any number of dimensions) are equal.
