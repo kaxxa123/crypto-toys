@@ -52,7 +52,7 @@ export function sqrAndMult<T>(
                     identity: T, 
                     val: T,                    
                     pow: number, 
-                    multiply: (a: T, b: T) => any): T {
+                    multiply: (a: T, b: T) => T): T {
     return sqrAndMultEx(identity, val, pow, multiply, multiply);
 }
 
@@ -283,7 +283,7 @@ export function ec2P(
     return pt2P;
 }
 
-// Compute P+P over an EC: y**2  % n = (x**3 + A*x + B) % n
+// Compute P+Q over an EC: y**2  % n = (x**3 + A*x + B) % n
 // where    m = (y2 – y1)*(x2 – x1)**-1
 //       x_PQ = m*m - x1 - x2)
 //       y_PQ = m(x1 - x_PQ) - y1
@@ -298,8 +298,7 @@ export function ecPplusQ(
 
     let computePplusQ = (fieldN: number, 
                         ptP: number[], 
-                        ptQ: number[], 
-                        verbose: boolean): number[] => {                        
+                        ptQ: number[]): number[] => {
 
         if (pointsEquals(ptP,ptQ))                                              
             throw "Compute 2P using ec2P.";                    //Function cannot handle point doubling
@@ -318,7 +317,7 @@ export function ecPplusQ(
         return [x3,y3];
     }
 
-    let ptPQ = computePplusQ(fieldN, ptP, ptQ, verbose);
+    let ptPQ = computePplusQ(fieldN, ptP, ptQ);
 
     if (verbose) 
         console.log(`P+Q = (${ptP}) + (${ptQ}) = (${ptPQ})`);
