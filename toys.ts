@@ -579,3 +579,32 @@ export function ecShowCycles(cycles: number[][][]): void {
         console.log(outstr);
     }
 }
+
+// Find all the r-torsion points for the given curve.
+export function ecTorsion(
+                    fieldN: number, 
+                    coeffA: number, 
+                    coeffB: number, 
+                    rorder: number, 
+                    verbose: boolean = false): number[][] {
+
+    let ptsR: number[][] = [];
+    
+    let pts = ecpoints(fieldN,coeffA,coeffB, false);
+    if (pts.length % rorder != 0)
+        throw `r (${rorder}) is not a factor of #E (${pts.length})`
+
+    // A point Q that is in the r-torsion will satisfy this relation:
+    // rQ = 0
+    for (let cnt = 0; cnt < pts.length; ++cnt) {
+        let rQ = ecMultiply(fieldN, coeffA, rorder, pts[cnt], false);
+        
+        if (pointsEquals(rQ, [0]))
+            ptsR.push(pts[cnt]);
+    }
+
+    if (verbose)
+        console.log(ptsR)
+
+    return ptsR;
+}

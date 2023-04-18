@@ -260,6 +260,25 @@ yargs.command({
     }
 });
 
+yargs.command({
+    command: "ectorsion",
+    describe: "EC get all order r points (r-torsion)",
+    builder: {
+        fieldN: fieldNOption,
+        coeffA: coeffAOption,
+        coeffB: coeffBOption,
+        rorder: {
+            describe: "#E factor whose points are to be found",
+            demandOption: true,
+            type: "number"
+        }
+    },
+    handler: function (argv: any) {
+        const cycle = TOYS.ecTorsion(argv.fieldN, argv.coeffA, argv.coeffB, argv.rorder, false)   
+        TOYS.ecShowCycles([cycle])
+    }
+});
+
 try {
     yargs.parse();
 }
