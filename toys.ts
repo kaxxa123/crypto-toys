@@ -375,23 +375,31 @@ export function ecInverse(fieldN: number, ptP: number[], verbose: boolean = fals
 
 // Given an initial point P, compute 2P, 3P, 4P until the cycle is closed.
 // A point that cycles through ALL group elements is a generator.
-// WARNING: function does not verify that the supplied point is actually on the curve!
 export function ecCycle(
                     fieldN: number, 
                     coeffA: number, 
+                    coeffB: number, 
                     ptP: number[], 
                     verbose: boolean = false): number[][] {
+
+    //Get list of all points on this curve
+    let allPoints = ecpoints(fieldN, coeffA, coeffB, false);
+    if (allPoints.findIndex((pt2) => pointsEquals(ptP,pt2)) == -1)
+        throw `Failed: Input point is not within E/F${fieldN}`
 
     let cycle = [ptP];
     if (verbose) 
         console.log(`P = (${ptP})`);
-
+    
     let ptNew = ecAdd(fieldN, coeffA, ptP, ptP, false);
     while (!pointsEquals(ptNew, ptP))
     {  
-        if (cycle.length == (fieldN - 1))
-            throw `Unexpected: element order cannot exceed ${(fieldN - 1)}`
+        if (cycle.length > allPoints.length)
+            throw `Unexpected: element order cannot exceed ${allPoints.length}`
 
+        if (allPoints.findIndex((pt2) => pointsEquals(ptNew,pt2)) == -1)
+            throw `Unexpected: Computed point (${ptNew}) is not within E/F${fieldN}`
+    
         cycle.push(ptNew);
         if (verbose) 
             console.log(`${cycle.length}P = (${ptNew})`);
@@ -421,14 +429,7 @@ export function ecAllCycles(
         if (points[cnt].length == 1) 
             continue;
 
-        let onecycle = ecCycle(fieldN, coeffA, points[cnt], false);
-
-        //Verify that all points are in the group
-        onecycle.forEach((pt) => {
-            let idx = points.findIndex((pt2) => pointsEquals(pt,pt2));
-            if (idx < 0) throw "Unexpected: point not found";
-        });
-
+        let onecycle = ecCycle(fieldN, coeffA, coeffB, points[cnt], false);
         allcycles.push(onecycle);
 
         if (verbose)
@@ -574,6 +575,7 @@ export function ecShowCycles(cycles: number[][][]): void {
                   outstr  = `${cnt}. C${cycles[cnt].length}: (${pt})`;            
             else  outstr += ` -> (${pt})`;           
         });
+        console.log();
         console.log(outstr);
     }
 }

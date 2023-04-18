@@ -16,7 +16,7 @@
     "ecadd": "node ./build/index.js ecadd --fieldN 37 --coeffA -5 --xPpt 1 --yPpt 2 --xQpt 26 --yQpt 29",
     "ecmultiply": "node ./build/index.js ecmultiply --fieldN 37 --coeffA -5 --xpt 1 --ypt 2 --multiplier 5",
     "ecinverse": "node ./build/index.js ecinverse --fieldN 37 --xpt 1 --ypt 2",
-    "eccycle": "node ./build/index.js eccycle --fieldN 37 --coeffA -5 --xpt 1 --ypt 2",
+    "eccycle": "node ./build/index.js eccycle --fieldN 37 --coeffA -5  --coeffB 8  --xpt 1 --ypt 2",
     "ecgetcycles": "node ./build/index.js ecgetcycles --fieldN 37 --coeffA -5 --coeffB 8",
     "eccycleproduct": "node ./build/index.js eccycleproduct --fieldN 37 --coeffA -5 --coeffB 8 --cn 0 --cm 4"
   },

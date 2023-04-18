@@ -117,7 +117,8 @@ yargs.command({
         coeffB: coeffBOption,
     },
     handler: function (argv: any) {
-        TOYS.ecpoints(argv.fieldN, argv.coeffA, argv.coeffB, true)   
+        let pts = TOYS.ecpoints(argv.fieldN, argv.coeffA, argv.coeffB, true)   
+        console.log(`#E/F${argv.fieldN} = ${pts.length}`)
     }
 });
 
@@ -205,11 +206,12 @@ yargs.command({
     builder: {
         fieldN: fieldNOption,
         coeffA: coeffAOption,
+        coeffB: coeffBOption,
         xpt: xptOption,
         ypt: yptOption,
     },
     handler: function (argv: any) {
-        const cycle = TOYS.ecCycle(argv.fieldN, argv.coeffA, [argv.xpt, argv.ypt], false)
+        const cycle = TOYS.ecCycle(argv.fieldN, argv.coeffA, argv.coeffB, [argv.xpt, argv.ypt], false)
         TOYS.ecShowCycles([cycle])
     }
 });
