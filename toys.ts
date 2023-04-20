@@ -581,6 +581,8 @@ export function ecShowCycles(cycles: number[][][]): void {
 }
 
 // Find all the r-torsion points for the given curve.
+// "...a point is “killed” (sent to O) when multiplied by its order"
+// Pairings for beginners - Craig Costello
 export function ecTorsion(
                     fieldN: number, 
                     coeffA: number, 

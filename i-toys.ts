@@ -10,66 +10,70 @@ export function compPointsEquals(ptA: number[][], ptB: number[][]): boolean {
             (ptA.every((val, index) => TOYS.pointsEquals(val, ptB[index])));
 }
 
-// Convert complex number [a,b] to string
+// Convert complex number [a,b] to string (a + bi)
 export function strComplex(value: number[]): string {
     if (value[0] == 0)
-        return `${value[1]}`;
+        return `${value[1]}i`;
     else if (value[1] == 0)
-        return `${value[0]}i`;
-    return `(${value[0]}i + ${value[1]})`;
+        return `${value[0]}`;
+    return `(${value[0]} + ${value[1]}i)`;
 }
 
-// Convert complex number point to string
+// Convert complex number point [[xa,xb],[ya,yb]] to string ((xa + xb.i),(ya + yb.i))
 export function strCompPt(ptA: any[]): string { 
     if (compPointsEquals(ptA,[[0]]))
         return "(0,0)";
     return "(" + strComplex(ptA[0]) + "," + strComplex(ptA[1]) + ")";
 }
 
-// Complex number addition (xa.i + xb) + (ya.i + yb)
+// compute (a + bi) % n where a, b can be negative.
+// however the result is always positive.
+export function compmod(xx: number[], fieldN: number): number[] { 
+    return [TOYS.posmod(xx[0], fieldN), TOYS.posmod(xx[1], fieldN)]
+}
+
+// Complex number addition (xa + xb.i) + (ya + yb.i)
 export function compadd(xx: number[], yy: number[]): number[]  {
     let aa = xx[0]+yy[0];
     let bb = xx[1]+yy[1];
     return [aa,bb];
 }
 
-// Complex number subtraction (xa.i + xb) - (ya.i + yb)
+// Complex number subtraction (xa + xb.i) - (ya + yb.i)
 export function compsub(xx: number[], yy: number[]): number[]  {
     let aa = xx[0]-yy[0];
     let bb = xx[1]-yy[1];
     return [aa,bb];
 }
 
-// Complex number multiplication (xa.i + xb) * (ya.i + yb)
+// Complex number multiplication (xa + xb.i) * (ya + yb.i)
 export function compmul(xx: number[], yy: number[]): number[] {
-    let aa = xx[0]*yy[1] + xx[1]*yy[0];
-    let bb = xx[1]*yy[1] + iSQUARED*xx[0]*yy[0];
+    let aa = xx[0]*yy[0] + iSQUARED*xx[1]*yy[1];
+    let bb = xx[0]*yy[1] + xx[1]*yy[0];
     return [aa,bb];
 }
 
-// Complex number multiplication (xa.i + xb) * (ya.i + yb) (% fieldN)
+// Complex number multiplication (xa + xb.i) * (ya + yb.i) (% fieldN)
 export function compNmul(fieldN: number, xx: number[], yy: number[]): number[]  {
-    let aa = TOYS.posmod(xx[0]*yy[1] + xx[1]*yy[0], fieldN);
-    let bb = TOYS.posmod(xx[1]*yy[1] + iSQUARED*xx[0]*yy[0], fieldN);
-    return [aa,bb];
+    return compmod(compmul(xx, yy), fieldN);
  }
 
-// Complex number squaring (xa.i + xb) * (xa.i + xb) (% fieldN)
+// Complex number squaring (xa + xb.i) * (xa + xb.i) (% fieldN)
 export function compNsqr(fieldN: number, xx: number[]): number[]  {
     return compNmul(fieldN, xx, xx);
 }
 
-// Complex number division (xa.i + xb) / (ya.i + yb) (% fieldN)
+// Complex number division (xa + xb.i) / (ya + yb.i) (% fieldN)
 export function compNdiv(fieldN: number, xx: number[], yy: number[]): number[]  {
     let quo = compNmul(fieldN, xx, [yy[0], (-1)*yy[1]]);
     let div = compNmul(fieldN, yy, [yy[0], (-1)*yy[1]]);
-    if (div[0] !== 0) throw "Unexpected: Complex in divisor";
-    let inv = TOYS.inverse(fieldN, div[1], false);
-    return compNmul(fieldN, quo, [0,inv]);
+    if (div[1] !== 0) throw "Unexpected: Complex in divisor";
+    let inv = TOYS.inverse(fieldN, div[0], false);
+    return compNmul(fieldN, quo, [inv,0]);
 }
 
-// Complex number exponentiation (xa.i + xb)**pow  (% fieldN)
-export function compRaise(xx: number[], pow: number, fieldN: number) { 
+// Complex number exponentiation (xa + xb.i)**pow  (% fieldN)
+export function compNraise(xx: number[], pow: number, fieldN: number) { 
     return TOYS.sqrAndMult([0,1], xx, pow, (aa: number[], bb: number[]) => compNmul(fieldN, aa, bb)); 
 }
 
@@ -138,14 +142,12 @@ export function compPplusQ(
 
         let xx  = compsub(mSqr, ptP[0]);
         xx      = compsub(xx,   ptQ[0]);
-        xx[0] = TOYS.posmod(xx[0],fieldN);
-        xx[1] = TOYS.posmod(xx[1],fieldN);
+        xx      = compmod(xx, fieldN);
 
-        let yy = compsub(ptP[0], xx);
-        yy = compmul(gradient, yy);
-        yy = compsub(yy, ptP[1]);
-        yy[0] = TOYS.posmod(yy[0],fieldN);
-        yy[1] = TOYS.posmod(yy[1],fieldN);
+        let yy  = compsub(ptP[0], xx);
+        yy      = compmul(gradient, yy);
+        yy      = compsub(yy, ptP[1]);
+        yy      = compmod(yy, fieldN);
 
         return [xx,yy];
     }
@@ -159,10 +161,10 @@ export function compPplusQ(
 
 }
 
-//Compute -P
+//Compute -P = (x, -y)
 export function compInv(fieldN: number, ptP: number[][]): number[][] {
     if (compPointsEquals(ptP, [[0]]))    
         return ptP;
 
-    return [ptP[0], [TOYS.posmod(-1*ptP[1][0], fieldN), TOYS.posmod(-1*ptP[1][1], fieldN)]];
+    return [ptP[0], compmod([-1*ptP[1][0], -1*ptP[1][1]], fieldN)];
 }
