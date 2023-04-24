@@ -1,4 +1,5 @@
 import * as TOYS from "./toys"
+import * as ITOYS from "./i-toys"
 import * as yargs from 'yargs'
 
 yargs.version("1.1.0")
@@ -33,6 +34,25 @@ const yptOption: yargs.Options = {
     demandOption: true,
     type: "number"
 }
+
+const multiplierOption: yargs.Options = {
+    describe: "point multiplier (m) in m*P",
+    demandOption: true,
+    type: "number"
+}
+
+const comp_aOption: yargs.Options = {
+    describe: "real component a, in a + bi",
+    demandOption: true,
+    type: "number"
+}
+
+const comp_bOption: yargs.Options = {
+    describe: "imaginary component b, in a + bi",
+    demandOption: true,
+    type: "number"
+}
+
 
 yargs.command({
     command: "isGenerator",
@@ -110,14 +130,16 @@ yargs.command({
 
 yargs.command({
     command: "ecpoints",
-    describe: "Find all points for the given EC: y**2  = (x**3 + coeffA*x + coeffB) (% fieldN)",
+    describe: "Find all points for the given EC/Fq: y**2  = (x**3 + coeffA*x + coeffB) (% fieldN)",
     builder: {
         fieldN: fieldNOption,
         coeffA: coeffAOption,
         coeffB: coeffBOption,
     },
     handler: function (argv: any) {
-        let pts = TOYS.ecpoints(argv.fieldN, argv.coeffA, argv.coeffB, true)   
+        let pts = TOYS.ecpoints(argv.fieldN, argv.coeffA, argv.coeffB, false) 
+        TOYS.ecShowPoints(pts)
+        console.log()
         console.log(`#E/F${argv.fieldN} = ${pts.length}`)
     }
 });
@@ -176,11 +198,7 @@ yargs.command({
         coeffA: coeffAOption,
         xpt: xptOption,
         ypt: yptOption,
-        multiplier: {
-            describe: "point multiplier (m) in m*P",
-            demandOption: true,
-            type: "number"
-        }
+        multiplier: multiplierOption
     },
     handler: function (argv: any) {
         TOYS.ecMultiply(argv.fieldN, argv.coeffA, argv.multiplier, [argv.xpt, argv.ypt], true)   
@@ -250,7 +268,7 @@ yargs.command({
     },
     handler: function (argv: any) {
         const cycle = TOYS.ecCnxCm(argv.fieldN, argv.coeffA, argv.coeffB, argv.cn, argv.cm, false)   
-        TOYS.ecShowCycles([cycle])
+        TOYS.ecShowPoints(cycle)
 
         console.log()
         let points = TOYS.ecpoints(argv.fieldN, argv.coeffA, argv.coeffB)
@@ -275,7 +293,145 @@ yargs.command({
     },
     handler: function (argv: any) {
         const cycle = TOYS.ecTorsion(argv.fieldN, argv.coeffA, argv.coeffB, argv.rorder, false)   
-        TOYS.ecShowCycles([cycle])
+        TOYS.ecShowPoints(cycle)
+    }
+});
+
+yargs.command({
+    command: "ecipoints",
+    describe: "Find all points for the given EC/Fq^2: y**2  = (x**3 + coeffA*x + coeffB) (% fieldN)",
+    builder: {
+        fieldN: fieldNOption,
+        coeffA: coeffAOption,
+        coeffB: coeffBOption,
+    },
+    handler: function (argv: any) {
+        let pts = ITOYS.ecipoints(argv.fieldN, argv.coeffA, argv.coeffB, false)   
+
+        ITOYS.eciShowPoints(pts)
+        console.log()
+        console.log(`#E/F${argv.fieldN}^2 = ${pts.length}`)
+    }
+});
+
+yargs.command({
+    command: "eci2p",
+    describe: "EC point doubling over Fq^2",
+    builder: {
+        fieldN: fieldNOption,
+        coeffA: coeffAOption,
+        xPpt_real: comp_aOption,
+        xPpt_imag: comp_bOption,
+        yPpt_real: comp_aOption,
+        yPpt_imag: comp_bOption,
+    },
+    handler: function (argv: any) {
+        ITOYS.eci2P(argv.fieldN, argv.coeffA, [[argv.xPpt_real,argv.xPpt_imag],[argv.yPpt_real, argv.yPpt_imag]], true)   
+    }
+});
+
+yargs.command({
+    command: "eciadd",
+    describe: "EC point addition over Fq^2",
+    builder: {
+        fieldN: fieldNOption,
+        coeffA: coeffAOption,
+        xPpt_real: comp_aOption,
+        xPpt_imag: comp_bOption,
+        yPpt_real: comp_aOption,
+        yPpt_imag: comp_bOption,
+        xQpt_real: comp_aOption,
+        xQpt_imag: comp_bOption,
+        yQpt_real: comp_aOption,
+        yQpt_imag: comp_bOption,
+    },
+    handler: function (argv: any) {
+        ITOYS.eciAdd(argv.fieldN, argv.coeffA, 
+                            [[argv.xPpt_real,argv.xPpt_imag],[argv.yPpt_real, argv.yPpt_imag]], 
+                            [[argv.xQpt_real,argv.xQpt_imag],[argv.yQpt_real, argv.yQpt_imag]], true)   
+    }
+});
+
+yargs.command({
+    command: "ecimultiply",
+    describe: "EC point multiplication  over Fq^2",
+    builder: {
+        fieldN: fieldNOption,
+        coeffA: coeffAOption,
+        xPpt_real: comp_aOption,
+        xPpt_imag: comp_bOption,
+        yPpt_real: comp_aOption,
+        yPpt_imag: comp_bOption,
+        multiplier: multiplierOption
+    },
+    handler: function (argv: any) {
+        ITOYS.eciMultiply(argv.fieldN, argv.coeffA, argv.multiplier, [[argv.xPpt_real,argv.xPpt_imag],[argv.yPpt_real, argv.yPpt_imag]], true)   
+    }
+});
+
+yargs.command({
+    command: "eciinverse",
+    describe: "EC point inversion over Fq^2",
+    builder: {
+        fieldN: fieldNOption,
+        xPpt_real: comp_aOption,
+        xPpt_imag: comp_bOption,
+        yPpt_real: comp_aOption,
+        yPpt_imag: comp_bOption,
+    },
+    handler: function (argv: any) {
+        ITOYS.eciInverse(argv.fieldN, [[argv.xPpt_real,argv.xPpt_imag],[argv.yPpt_real, argv.yPpt_imag]], true)   
+    }
+});
+
+yargs.command({
+    command: "ecicycle",
+    describe: "EC cycle for given point over Fq^2",
+    builder: {
+        fieldN: fieldNOption,
+        coeffA: coeffAOption,
+        coeffB: coeffBOption,
+        xPpt_real: comp_aOption,
+        xPpt_imag: comp_bOption,
+        yPpt_real: comp_aOption,
+        yPpt_imag: comp_bOption,
+    },
+    handler: function (argv: any) {
+        const cycle = ITOYS.eciCycle(argv.fieldN, argv.coeffA, argv.coeffB, [[argv.xPpt_real,argv.xPpt_imag],[argv.yPpt_real, argv.yPpt_imag]], false)
+        ITOYS.eciShowCycles([cycle])
+    }
+});
+
+yargs.command({
+    command: "ecigetcycles",
+    describe: "EC get cycle for each point over Fq^2",
+    builder: {
+        fieldN: fieldNOption,
+        coeffA: coeffAOption,
+        coeffB: coeffBOption,
+    },
+    handler: function (argv: any) {
+        const cycles = ITOYS.eciUniqueCycles(argv.fieldN, argv.coeffA, argv.coeffB, false)   
+        ITOYS.eciShowCycles(cycles)
+    }
+});
+
+yargs.command({
+    command: "ecitorsion",
+    describe: "EC get all order r points (r-torsion) over Fq^2",
+    builder: {
+        fieldN: fieldNOption,
+        coeffA: coeffAOption,
+        coeffB: coeffBOption,
+        rorder: {
+            describe: "#E factor whose points are to be found",
+            demandOption: true,
+            type: "number"
+        }
+    },
+    handler: function (argv: any) {
+        const cycle = ITOYS.eciTorsion(argv.fieldN, argv.coeffA, argv.coeffB, argv.rorder, false)   
+        ITOYS.eciShowPoints(cycle)
     }
 });
 

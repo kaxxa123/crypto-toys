@@ -138,6 +138,54 @@ export function ecihasPoint(set: number[][][], pt: number[][]): number {
     return set.findIndex((setPt,idx) => compPointsEquals(setPt, pt) );
 }
 
+// Check if P + Q = R for any P, Q gives an R within the same group
+//
+// let itoys = require('./build/i-toys.js')
+// itoys.eciClosure(11, 4, 3, true)
+//
+// itoys.eciClosure(13, 4, 3, true)
+//
+export function eciClosure(
+                fieldN: number, 
+                coeffA: number, 
+                coeffB: number, 
+                verbose: boolean = false): boolean {
+
+    let pts = ecipoints(fieldN, coeffA, coeffB, false);
+
+    let confirms: number = 0;
+    let notComputed: number = 0;
+
+    for (let icntP = 0; icntP < pts.length; ++icntP) {
+        for (let icntQ = icntP; icntQ < pts.length; ++icntQ) {
+
+            let ptR: number[][] = [[0]];
+            try {
+                ptR = eciAdd(fieldN, coeffA, pts[icntP], pts[icntQ], verbose) 
+                if (ecihasPoint(pts, ptR) == -1) {
+                    console.log(`Closure Test failed for: ${strCompPt(pts[icntP])} + ${strCompPt(pts[icntQ])}`)
+                    return false;
+                }
+                ++confirms;
+            }
+            catch {
+                // Happens when the chord computations leads to a divide by zero.
+                // i.e. a complex number for which we cannot obtain an inverse 
+                console.log(`Cannot Compute: ${strCompPt(pts[icntP])} + ${strCompPt(pts[icntQ])}`)
+                ++notComputed;
+            }
+        }
+
+        if (verbose) 
+            console.log();
+    }
+
+    if (verbose)
+        console.log(`Confirmed ${confirms}, Not Computed: ${notComputed}`);
+
+    return true;
+}
+
 // Compute gradient of a line between two points expressed in complex numbers (% fieldN)
 // P = [[xa, xb],[ya, yb]]
 // Q = [[xa, xb],[ya, yb]]
@@ -226,11 +274,21 @@ export function eciPplusQ(
 }
 
 // Compute -P = (x, -y)
-export function eciInverse(fieldN: number, ptP: number[][]): number[][] {
-    if (compPointsEquals(ptP, [[0]]))    
-        return ptP;
+export function eciInverse(fieldN: number, ptP: number[][], verbose: boolean = false): number[][] {
 
-    return [ptP[0], compmod([-1*ptP[1][0], -1*ptP[1][1]], fieldN)];
+    let invertP = (fieldN: number, ptP: number[][]): number[][] => {    
+        if (compPointsEquals(ptP, [[0]]))    
+            return ptP;
+
+        return [ptP[0], compmod([-1*ptP[1][0], -1*ptP[1][1]], fieldN)];
+    }
+
+    let minusP = invertP(fieldN, ptP)
+
+    if (verbose) 
+        console.log(`-P = ${strCompPt(minusP)}`);
+
+    return minusP;
 }
 
 // Compute gradient at a tangent to a point expressed as a complex number (% fieldN)
@@ -326,11 +384,22 @@ export function eciAdd(
                         ptQ: number[][], 
                         verbose: boolean = false): number[][] {
 
-    if (compPointsEquals(ptP, [[0]]))    return ptQ;
-    if (compPointsEquals(ptQ, [[0]]))    return ptP;
-    if (compPointsEquals(ptP, ptQ))  return eci2P(fieldN, coeffA, ptP, verbose);
+    let computeAdd = (  fieldN: number, 
+                        coeffA: number, 
+                        ptP: number[][], 
+                        ptQ: number[][]): number[][]  => {
+        if (compPointsEquals(ptP, [[0]]))    return ptQ;
+        if (compPointsEquals(ptQ, [[0]]))    return ptP;
+        if (compPointsEquals(ptP, ptQ))     return eci2P(fieldN, coeffA, ptP, false);
+        return eciPplusQ(fieldN, ptP, ptQ, false);
+    }
 
-    return eciPplusQ(fieldN, ptP, ptQ, verbose);
+    let ptPQ = computeAdd(fieldN, coeffA, ptP, ptQ);
+
+    if (verbose) 
+        console.log(`P+Q = ${strCompPt(ptP)} + ${strCompPt(ptQ)} = ${strCompPt(ptPQ)}`);
+
+    return ptPQ;
 }
 
 // Compute m*P over an EC: y**2  % n = (x**3 + A*x + B) % n
@@ -489,21 +558,6 @@ export function eciUniqueCycles(
     return cycOut;
 }
 
-// Print out a set of point cycles
-export function eciShowCycles(cycles: number[][][][]): void {
-
-    for (let cnt = 0; cnt < cycles.length; ++cnt) {
-        let outstr = "";
-        cycles[cnt].forEach((pt) => {
-            if (outstr.length === 0) 
-                  outstr  = `${cnt+1}. C${cycles[cnt].length}: ${strCompPt(pt)}`;
-            else  outstr += ` -> ${strCompPt(pt)}`;           
-        });
-        console.log();
-        console.log(outstr);
-    }
-}
-
 // Find all the r-torsion points for the given curve.
 // "...a point is “killed” (sent to O) when multiplied by its order"
 // Pairings for beginners - Craig Costello
@@ -533,4 +587,63 @@ export function eciTorsion(
         console.log(ptsR)
 
     return ptsR;
+}
+
+// Map point by applying Frobenius endomorphism π
+// For E/Fq^2 π: (x, y) -> (x^q, y^q)
+//
+// This mapping is applied k times computing π^k
+export function eciFrobeniusPi(
+                        fieldN: number, 
+                        powk: number, 
+                        ptP: number[][], 
+                        verbose: boolean = false): number[][] {
+                            
+    let ptPi = ptP;
+
+    //Skip [[0]] -> [[0]]
+    if (ptPi.length == 2) {
+        let pix = ptP[0];
+        let piy = ptP[1];
+
+        for (let cntk = 0; cntk < powk; ++cntk) {
+            pix = compNraise(pix, fieldN, fieldN);
+            piy = compNraise(piy, fieldN, fieldN);
+        }
+
+        ptPi = [pix, piy]
+    }
+
+    if (verbose) 
+        console.log(`${strCompPt(ptP)} -> ${strCompPt(ptPi)}`);
+
+    return ptPi;
+}
+
+// Print out a set of point cycles
+export function eciShowCycles(cycles: number[][][][]): void {
+
+    for (let cnt = 0; cnt < cycles.length; ++cnt) {
+        let outstr = "";
+        cycles[cnt].forEach((pt) => {
+            if (outstr.length === 0) 
+                  outstr  = `${cnt+1}. C${cycles[cnt].length}: ${strCompPt(pt)}`;
+            else  outstr += ` -> ${strCompPt(pt)}`;           
+        });
+        console.log();
+        console.log(outstr);
+    }
+}
+
+// Print out a list of points
+export function eciShowPoints(points: number[][][]): void {
+
+    let outstr = "";
+    points.forEach((pt) => {
+        if (outstr.length === 0) 
+              outstr  = `$ Total Points ${points.length}: ${strCompPt(pt)}`;            
+        else  outstr += `, ${strCompPt(pt)}`;           
+    });
+    console.log();
+    console.log(outstr);
 }

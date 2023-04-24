@@ -130,6 +130,8 @@ export function gcd(aValue: number, bValue: number): number {
 // gcd(a,n)  = n*s + a*t
 export function inverse(fieldN: number, value: number, verbose: boolean = false): number {
 
+    value = posmod(value, fieldN)
+
     if ((value <= 0) || (fieldN <= 0)) 
         throw "value and fieldN must be greater than zero";
 
@@ -337,10 +339,23 @@ export function ecAdd(
                     ptP: number[], 
                     ptQ: number[], 
                     verbose: boolean = false): number[] {
-    if (pointsEquals(ptP, [0]))    return ptQ;
-    if (pointsEquals(ptQ, [0]))    return ptP;
-    if (pointsEquals(ptP, ptQ))    return ec2P(fieldN, coeffA, ptP, verbose);
-    return ecPplusQ(fieldN, ptP, ptQ, verbose);
+
+    let computeAdd = (  fieldN: number, 
+                        coeffA: number, 
+                        ptP: number[], 
+                        ptQ: number[]): number[]  => {
+        if (pointsEquals(ptP, [0]))    return ptQ;
+        if (pointsEquals(ptQ, [0]))    return ptP;
+        if (pointsEquals(ptP, ptQ))    return ec2P(fieldN, coeffA, ptP, false);
+        return ecPplusQ(fieldN, ptP, ptQ, false);
+    }
+
+    let ptPQ = computeAdd(fieldN, coeffA, ptP, ptQ);
+
+    if (verbose) 
+        console.log(`P+Q = (${ptP}) + (${ptQ}) = (${ptPQ})`);
+
+    return ptPQ;
 }
 
 // Compute m*P over an EC: y**2  % n = (x**3 + A*x + B) % n
@@ -358,7 +373,7 @@ export function ecMultiply(
 // WARNING: function does not verify that the supplied point is actually on the curve!
 export function ecInverse(fieldN: number, ptP: number[], verbose: boolean = false): number[] {
 
-    let invertP = (fieldN: number, ptP: number[]) => {
+    let invertP = (fieldN: number, ptP: number[]): number[]  => {
         if (pointsEquals(ptP, [0]))    
             return ptP;
             
@@ -565,21 +580,6 @@ export function ecCnxCm(
     return c1xc2;
 }
 
-// Print out a set of point cycles
-export function ecShowCycles(cycles: number[][][]): void {
-
-    for (let cnt = 0; cnt < cycles.length; ++cnt) {
-        let outstr = "";
-        cycles[cnt].forEach((pt) => {
-            if (outstr.length === 0) 
-                  outstr  = `${cnt}. C${cycles[cnt].length}: (${pt})`;            
-            else  outstr += ` -> (${pt})`;           
-        });
-        console.log();
-        console.log(outstr);
-    }
-}
-
 // Find all the r-torsion points for the given curve.
 // "...a point is “killed” (sent to O) when multiplied by its order"
 // Pairings for beginners - Craig Costello
@@ -610,3 +610,32 @@ export function ecTorsion(
 
     return ptsR;
 }
+
+// Print out a set of point cycles
+export function ecShowCycles(cycles: number[][][]): void {
+
+    for (let cnt = 0; cnt < cycles.length; ++cnt) {
+        let outstr = "";
+        cycles[cnt].forEach((pt) => {
+            if (outstr.length === 0) 
+                  outstr  = `${cnt}. C${cycles[cnt].length}: (${pt})`;            
+            else  outstr += ` -> (${pt})`;           
+        });
+        console.log();
+        console.log(outstr);
+    }
+}
+
+// Print out a list of points
+export function ecShowPoints(points: number[][]): void {
+
+    let outstr = "";
+    points.forEach((pt) => {
+        if (outstr.length === 0) 
+                outstr  = `$ Total Points ${points.length}: (${pt})`;            
+        else  outstr += `, (${pt})`;           
+    });
+    console.log();
+    console.log(outstr);
+}
+

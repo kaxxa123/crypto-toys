@@ -6,11 +6,13 @@
   "scripts": {
     "build": "rm ./build -rf && tsc",
     "help": "node ./build/index.js --help",
+
     "isGenerator": "node ./build/index.js isGenerator --alpha 35 --fieldN 37",
     "getGenerators": "node ./build/index.js getGenerators --fieldN 37",
     "gcd": "node ./build/index.js gcd --aValue 11 --bValue 44",
     "inverse": "node ./build/index.js inverse --value 11 --fieldN 37",
     "groupInverses": "node ./build/index.js groupInverses --fieldN 37",
+
     "ecpoints": "node ./build/index.js ecpoints --fieldN 37 --coeffA -5 --coeffB 8",
     "ec2p": "node ./build/index.js ec2p --fieldN 37 --coeffA -5 --xpt 1 --ypt 2",
     "ecadd": "node ./build/index.js ecadd --fieldN 37 --coeffA -5 --xPpt 1 --yPpt 2 --xQpt 26 --yQpt 29",
@@ -19,7 +21,16 @@
     "eccycle": "node ./build/index.js eccycle --fieldN 37 --coeffA -5  --coeffB 8  --xpt 1 --ypt 2",
     "ecgetcycles": "node ./build/index.js ecgetcycles --fieldN 37 --coeffA -5 --coeffB 8",
     "eccycleproduct": "node ./build/index.js eccycleproduct --fieldN 37 --coeffA -5 --coeffB 8 --cn 0 --cm 4",
-    "ectorsion": "node ./build/index.js ectorsion --fieldN 101 --coeffA 1 --coeffB 1 --rorder 21"
+    "ectorsion": "node ./build/index.js ectorsion --fieldN 101 --coeffA 1 --coeffB 1 --rorder 21",
+
+    "ecipoints": "node ./build/index.js ecipoints --fieldN 11 --coeffA 4 --coeffB 3",
+    "eci2p":  "node ./build/index.js eci2p  --fieldN 11 --coeffA 4   --xPpt_real 10 --xPpt_imag 6 --yPpt_real 7 --yPpt_imag 8",
+    "eciadd": "node ./build/index.js eciadd --fieldN 11 --coeffA 4   --xPpt_real 10 --xPpt_imag 6 --yPpt_real 7 --yPpt_imag 8    --xQpt_real 2 --xQpt_imag  1  --yQpt_real 7  --yQpt_imag 5",
+    "ecimultiply": "node ./build/index.js ecimultiply --fieldN 11 --coeffA 4  --xPpt_real 10 --xPpt_imag 6 --yPpt_real 7 --yPpt_imag 8  --multiplier 5",
+    "eciinverse": "node ./build/index.js eciinverse --fieldN 11  --xPpt_real 10 --xPpt_imag 6 --yPpt_real 7 --yPpt_imag 8",
+    "ecicycle": "node ./build/index.js ecicycle  --fieldN 11 --coeffA 4 --coeffB 3  --xPpt_real 10 --xPpt_imag 6 --yPpt_real 7 --yPpt_imag 8",
+    "ecigetcycles": "node ./build/index.js ecigetcycles --fieldN 11 --coeffA 4 --coeffB 3",
+    "ecitorsion": "node ./build/index.js ecitorsion  --fieldN 11 --coeffA 4 --coeffB 3  --rorder 14"
   },
   "repository": {
     "type": "git",
