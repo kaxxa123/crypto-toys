@@ -458,7 +458,7 @@ export function eciAllCycles(
                     fieldN: number, 
                     coeffA: number, 
                     coeffB: number, 
-                    verbose: boolean = false) {
+                    verbose: boolean = false): number[][][][]  {
 
     let points = ecipoints(fieldN,coeffA,coeffB, false);
     let allcycles = [];
@@ -558,9 +558,24 @@ export function eciUniqueCycles(
     return cycOut;
 }
 
-// Find all the r-torsion points for the given curve.
+// Filter cycles by order
+export function eciFilterCycles(cycles: number[][][][], rorder: number): number[][][][]  {
+    let cycOut: number[][][][] = [];
+
+    cycles.forEach((cyc) => {
+        if (cyc.length == rorder)
+            cycOut.push(cyc);
+    })
+
+    return cycOut;
+}
+
+// Find all the r-torsion points for the given curve. 
+// By applying this rule:
 // "...a point is “killed” (sent to O) when multiplied by its order"
 // Pairings for beginners - Craig Costello
+//
+// itoys.eciTorsion(11, 0, 4, 3)
 export function eciTorsion(
                     fieldN: number, 
                     coeffA: number, 
@@ -587,6 +602,57 @@ export function eciTorsion(
         console.log(ptsR)
 
     return ptsR;
+}
+
+// Find all the r-torsion points for the given curve. 
+// By applying this rule:
+// Given any two points P, Q that are not in the same (r-order) subgroup, neither of 
+// which is 0, any other point in E[r] can be obtained as [i]P + [j]Q for i, j = [0, r-1]
+// Pairings for beginners - Craig Costello
+//
+// itoys.eciEr(11, 0, 4, 3, [[0,0],[9,0]], [[7,2],[0,1]])
+export function eciEr(
+                fieldN: number, 
+                coeffA: number, 
+                coeffB: number, 
+                rorder: number, 
+                ptP: number[][], 
+                ptQ: number[][],
+                verbose: boolean = false): number[][][] {
+
+    let ptsOut = [];
+
+    //Check P and Q are not Zero
+    if (compPointsEquals(ptP, [[0]]) || compPointsEquals(ptQ, [[0]])) 
+        throw `Point P, Q cannot be Zero`
+
+    //Check if P and Q are truly an r-order point
+    let zero = eciMultiply(fieldN, coeffA, rorder, ptP, false);
+    if (!compPointsEquals(zero, [[0]])) 
+        throw `Point P is not of order ${rorder}`
+
+    zero = eciMultiply(fieldN, coeffA, rorder, ptQ, false);
+    if (!compPointsEquals(zero, [[0]])) 
+        throw `Point Q is not of order ${rorder}`
+
+    //Check that P and Q are not in the same subgroup
+    let cycleP = eciCycle(fieldN, coeffA, coeffB, ptP, false)
+    if (ecihasPoint(cycleP, ptQ) != -1)
+        throw `P and Q are in the same subgroup`
+    
+    for (let cnt1 = 0; cnt1 < rorder; ++cnt1)
+        for (let cnt2 = 0; cnt2 < rorder; ++cnt2) {
+            let mP = (cnt1 == 0) ? [[0]] : eciMultiply(fieldN, coeffA, cnt1, ptP, false);
+            let mQ = (cnt2 == 0) ? [[0]] : eciMultiply(fieldN, coeffA, cnt2, ptQ, false);
+
+            let newP = eciAdd(fieldN, coeffA, mP, mQ, false);
+            ptsOut.push(newP)
+        }
+
+    if (verbose)
+        console.log(ptsOut)
+
+    return ptsOut;
 }
 
 // Map point by applying Frobenius endomorphism π
