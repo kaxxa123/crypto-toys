@@ -348,20 +348,3 @@ export function projTest2P(
 
     return true;        
 }
-
-
-// {
-//     let pts = itoys.ecipoints(11,4,3)
-
-//     for (cnt = 1; cnt < pts.length; ++cnt) { 
-//         let pp = itoys.proj2P(11,4, pts[cnt], false)
-//         let xy = itoys.eci2P(11,4, pts[cnt], false)
-
-//         if (itoys.compPointsEquals(pp,xy)) 
-//             console.log(`MATCHED 2*${itoys.strCompPt(pts[cnt])} = ${itoys.strCompPt(pp)}`)
-//         else {
-//             console.log(`NOT MATCHED ${itoys.strCompPt(pts[cnt])}`)
-//             break
-//         }
-//     }
-// }
