@@ -1,6 +1,6 @@
 import * as TOYS from "./toys"
 
-export const iSQUARED = -1;
+export let iSQUARED = -1;
 
 // Compare two complex points in the format [[xa,xb],[ya,yb]]
 // ...with the exception of the point at infinity being [[0]]
@@ -12,10 +12,10 @@ export function compPointsEquals(ptA: number[][], ptB: number[][]): boolean {
 
 // Convert complex number [a,b] to string (a + bi)
 export function strComplex(value: number[]): string {
-    if (value[0] == 0)
-        return `${value[1]}i`;
-    else if (value[1] == 0)
+    if (value[1] == 0)
         return `${value[0]}`;
+    else if (value[0] == 0)
+        return `${value[1]}i`;
     return `(${value[0]} + ${value[1]}i)`;
 }
 
@@ -664,26 +664,86 @@ export function eciFrobeniusPi(
                         powk: number, 
                         ptP: number[][], 
                         verbose: boolean = false): number[][] {
-                            
+                  
+    let strP = strCompPt(ptP)
     let ptPi = ptP;
 
     //Skip [[0]] -> [[0]]
     if (ptPi.length == 2) {
-        let pix = ptP[0];
-        let piy = ptP[1];
+        let piX = ptPi[0];
+        let piY = ptPi[1];
 
         for (let cntk = 0; cntk < powk; ++cntk) {
-            pix = compNraise(pix, fieldN, fieldN);
-            piy = compNraise(piy, fieldN, fieldN);
+            piX = compNraise(piX, fieldN, fieldN);
+            piY = compNraise(piY, fieldN, fieldN);
         }
 
-        ptPi = [pix, piy]
+        ptPi = [piX, piY]
     }
 
     if (verbose) 
-        console.log(`${strCompPt(ptP)} -> ${strCompPt(ptPi)}`);
+        console.log(`${strP} -> ${strCompPt(ptPi)}`);
 
     return ptPi;
+}
+
+//
+// Compute trace map Tr(P)
+// Galois theory tells us Tr: E(q^k) -> E(q)
+// Tr(P) = π^0 (P) + π^1 (P) + π^2 (P) ... + π^(k-1) (P)
+// Tr(P) =      P  + π^1 (P) + π^2 (P) ... + π^(k-1) (P)
+// When the order r||#E(q), Tr sends all torsion points...
+// ...to 1 subgroup of the r-torsion
+// Pairings for beginners - Craig Costello
+export function eciFrobeniusTr(
+                        fieldN: number, 
+                        coeffA: number,
+                        powk: number, 
+                        ptP: number[][],
+                        verbose: boolean = false): number[][] {
+
+    let strP = strCompPt(ptP)
+    let ptOut = ptP;
+
+    if (ptOut.length == 2) {
+        let piX = ptOut[0];
+        let piY = ptOut[1];
+
+        for (let cntk = 1; cntk < powk; ++cntk) {
+            piX = compNraise(piX, fieldN, fieldN);
+            piY = compNraise(piY, fieldN, fieldN);
+            ptOut  = eciAdd(fieldN, coeffA, ptOut, [piX, piY], false);
+        }
+    }
+
+    if (verbose)
+        console.log(`Tr(${strP}) = ${strCompPt(ptOut)}`)
+
+    return ptOut;
+}
+
+// Compute trace map Tr(P) for all torsion points
+//
+// let itoys = require('./build/i-toys.js')
+// let torPts = itoys.eciEr(11, 0, 4, 3, [[0,0],[9,0]], [[7,2],[0,1]])
+// itoys.eciFrobeniusTrMap(11, 0, 2, torPts, true)
+export function eciFrobeniusTrMap(
+                            fieldN: number, 
+                            coeffA: number,
+                            powk: number, 
+                            torPts: number[][][],
+                            verbose: boolean = false): number[][][] {
+
+    let torOut: number[][][] = [];
+
+    torPts.forEach((pt) => {
+        let ptOut  = eciFrobeniusTr(fieldN, coeffA, powk, pt, verbose);
+
+        //Add if not already added
+        let idx = torOut.findIndex((pt2) => compPointsEquals(ptOut,pt2));
+        if (idx < 0)  torOut.push(ptOut);
+    });
+    return torOut; 
 }
 
 // Print out a set of point cycles
