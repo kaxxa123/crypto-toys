@@ -687,7 +687,6 @@ export function eciFrobeniusPi(
     return ptPi;
 }
 
-//
 // Compute trace map Tr(P)
 // Galois theory tells us Tr: E(q^k) -> E(q)
 // Tr(P) = π^0 (P) + π^1 (P) + π^2 (P) ... + π^(k-1) (P)
@@ -722,6 +721,26 @@ export function eciFrobeniusTr(
     return ptOut;
 }
 
+// Compute the anti-trace map Tr(P)
+// aTr: P -> P’ = [k]P – Tr(P) 
+export function eciAntiFrobeniusTr(
+                        fieldN: number, 
+                        coeffA: number,
+                        powk: number, 
+                        ptP: number[][],
+                        verbose: boolean = false): number[][] {
+
+    let kp = eciMultiply(fieldN, coeffA, powk, ptP);                // [k]P
+    let trace = eciFrobeniusTr(fieldN, coeffA, powk, ptP, false)    // Tr(P)
+    trace = eciInverse(fieldN, trace);                              //-Tr(P)
+
+    let ptOut  = eciAdd(fieldN, coeffA, kp, trace);                 // [k]P - Tr(P)
+    if (verbose) 
+        console.log(`${strCompPt(ptP)} -> ${strCompPt(ptOut)}`);
+
+    return ptOut;
+}
+
 // Compute trace map Tr(P) for all torsion points
 //
 // let itoys = require('./build/i-toys.js')
@@ -738,6 +757,30 @@ export function eciFrobeniusTrMap(
 
     torPts.forEach((pt) => {
         let ptOut  = eciFrobeniusTr(fieldN, coeffA, powk, pt, verbose);
+
+        //Add if not already added
+        let idx = torOut.findIndex((pt2) => compPointsEquals(ptOut,pt2));
+        if (idx < 0)  torOut.push(ptOut);
+    });
+    return torOut; 
+}
+
+// Compute anti-trace map aTr(P) for all torsion points
+//
+// let itoys = require('./build/i-toys.js')
+// let torPts = itoys.eciEr(11, 0, 4, 3, [[0,0],[9,0]], [[7,2],[0,1]])
+// itoys.eciAntiFrobeniusTrMap(11, 0, 2, torPts, true)
+export function eciAntiFrobeniusTrMap(
+                            fieldN: number, 
+                            coeffA: number,
+                            powk: number, 
+                            torPts: number[][][],
+                            verbose: boolean = false): number[][][] {
+
+    let torOut: number[][][] = [];
+
+    torPts.forEach((pt) => {
+        let ptOut  = eciAntiFrobeniusTr(fieldN, coeffA, powk, pt, verbose);
 
         //Add if not already added
         let idx = torOut.findIndex((pt2) => compPointsEquals(ptOut,pt2));
