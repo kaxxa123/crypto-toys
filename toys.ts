@@ -6,6 +6,27 @@ export function posmod(value: number, fieldN: number): number {
     return ((value%fieldN)+fieldN)%fieldN; 
 }
 
+// Check if number is a prime number
+export function isPrime(value: number) {
+
+    // Filter out zero and negative numbers
+    if (value < 2)  return false;
+
+    // 2 is the only even prime number
+    if (value == 2)     return true;
+    if (value%2 == 0)   return false;
+
+    // Try dividing value by all odd numbers between [3, value/2]
+    // If it is devisible than it's not prime
+    let limit = Math.floor(value/2);
+
+    for (let check = 3; check < limit; check += 2) {
+        if (value%check == 0)   return false;
+    }
+
+    return true;
+}
+
 // Compute val**pow using the Square and Multiply Algorithm where everything is caller defined
 // square and multiply operations are also distinct lambdas 
 export function sqrAndMultEx<T>(

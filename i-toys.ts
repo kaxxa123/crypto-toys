@@ -789,6 +789,39 @@ export function eciAntiFrobeniusTrMap(
     return torOut; 
 }
 
+// Find embedding degree k, limiting the search between [1,10]
+// where k allows forming an extension field Fq^k such that to
+// obtain all the r torsion points.
+// For prime q and r, k is the smallest positive integer that 
+// satisfies:       
+//      r | (q^k - 1)   =>    (q^k - 1) % r = 0
+export function eciEmbeddingDegree(
+                        fieldN: number,     // q
+                        rorder: number,     // r
+                        verbose: boolean = false) {
+    let powk = 1;
+
+    if (!TOYS.isPrime(fieldN))
+        throw `Field n is not prime`
+
+    if (!TOYS.isPrime(rorder))
+        throw `Order r is not prime`
+
+    //Try out all k within [1, 10]
+    for ( ;powk < 11; ++powk) {
+        let qk = TOYS.raisePower(fieldN, powk, rorder)
+
+        if (TOYS.posmod(qk-1,rorder) == 0)
+            break;
+    }
+
+    if (verbose) {
+        if (powk < 11)  console.log(`Embedding Degree k = ${powk}`)
+        else            console.log(`Embedding Degree k not found within [1,10]`)
+    }
+    return (powk < 11) ? powk : -1;
+}
+
 // Print out a set of point cycles
 export function eciShowCycles(cycles: number[][][][]): void {
 
