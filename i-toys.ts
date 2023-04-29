@@ -742,6 +742,9 @@ export function eciAntiFrobeniusTr(
 }
 
 // Compute trace map Tr(P) for all torsion points
+// Function returns all the unique points resulting from Tr(P)
+// ...which effectively results in the: 
+//                  Base-Field Subgroup
 //
 // let itoys = require('./build/i-toys.js')
 // let torPts = itoys.eciEr(11, 0, 4, 3, [[0,0],[9,0]], [[7,2],[0,1]])
@@ -766,6 +769,9 @@ export function eciFrobeniusTrMap(
 }
 
 // Compute anti-trace map aTr(P) for all torsion points
+// Function returns all the unique points resulting from aTr(P)
+// ...which effectively results in the: 
+//                  Trace Zero Subgroup
 //
 // let itoys = require('./build/i-toys.js')
 // let torPts = itoys.eciEr(11, 0, 4, 3, [[0,0],[9,0]], [[7,2],[0,1]])
