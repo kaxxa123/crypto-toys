@@ -1,30 +1,34 @@
+import {ECurve, unpackEC, ReqEC} from './config'
 import {pointsEquals, sqrAndMultEx} from "./toys"
 
 import {compmod, compsub, compmul, compNdiv, compNmul, compNsqr, compNraise,
         compPointsEquals, strComplex,
         eciAdd, eciline2P, ecilinePplusQ, strCompPt,
         eciTorsion, eciFrobeniusTrMap, eciAntiFrobeniusTrMap, eciEmbeddingDegree, eciShowPoints } from "./i-toys"
-import { Console } from "console";
 
 const INVALID_LINE = [[0,0],[0,0]];
-export function solveLine(fieldN: number, ptP: number[][], line: number[][]): number[] {
-    let res = compmul(line[0], ptP[0]);                     // m*x
+
+export function solveLine(ec: ECurve, ptP: number[][], line: number[][]): number[] {
+
+    let {fieldN, iSQR} = unpackEC(ec, ReqEC.N)
+    let res = compmul(line[0], ptP[0], iSQR);               // m*x
     res = compsub(ptP[1],res);                              // y - m*x
     res = compsub(res,line[1]);                             // y - mx - c
     return compmod(res,fieldN);
 }
 
-export function solveVert(fieldN: number, ptP: number[][], vertPt: number[][]): number[] {
+export function solveVert(ec: ECurve, ptP: number[][], vertPt: number[][]): number[] {
+
+    let {fieldN} = unpackEC(ec, ReqEC.N)
     let res = compsub(ptP[0], vertPt[0]); // px - vx
     return compmod(res,fieldN);
 }
 
 // Display line formula in the format: 
 //      y + mx + c = 0 (% n)
-export function showFRPLine(
-                    fieldN: number, 
-                    line: number[][]) {
+export function showFRPLine(ec: ECurve, line: number[][]) {
 
+    let {fieldN} = unpackEC(ec, ReqEC.N)
     if (compPointsEquals(line, INVALID_LINE))
         return "<invalid line>";
 
@@ -36,10 +40,8 @@ export function showFRPLine(
 
 // Display vertical line formula as:
 //      x + c = 0
-export function showFRPVertical(
-                    fieldN: number, 
-                    ptP: number[][]) {
-
+export function showFRPVertical(ec: ECurve, ptP: number[][]) {
+    let {fieldN} = unpackEC(ec, ReqEC.N)
     let negX = compmod([-1*ptP[0][0],-1*ptP[0][1]], fieldN);
 
     return `x + ${strComplex(negX)}`;
@@ -50,14 +52,9 @@ export function showFRPVertical(
 // a specific point P for which we want to workout frp
 //
 // let pair   = require('./build/pairings.js')
-// let params = pair.getFRPparams(23, 17, 6, 5, [[10,0],[7,0]], true)
-export function getFRPparams(
-                        fieldN: number, 
-                        coeffA: number, 
-                        coeffB: number, 
-                        rorder: number, 
-                        ptP: number[][], 
-                        verbose: boolean = false): number[][][][] {
+// let params = pair.getFRPparams({fieldN: 23, coeffA: 17, coeffB: 6, rorder: 5}, [[10,0],[7,0]], true)
+export function getFRPparams(ec: ECurve, ptP: number[][], verbose: boolean = false): number[][][][] {
+    let {rorder} = unpackEC(ec, ReqEC.NABR)
     let funcOut = [];
     let line = INVALID_LINE;
     let next = JSON.parse(JSON.stringify(ptP));
@@ -66,18 +63,18 @@ export function getFRPparams(
         let prev = JSON.parse(JSON.stringify(next));
 
         if (cnt == 1) {
-            line = eciline2P(fieldN, coeffA, coeffB, ptP);
-            next = eciAdd(fieldN, coeffA, ptP, ptP);
+            line = eciline2P(ec, ptP);
+            next = eciAdd(ec, ptP, ptP);
         }
         else {
-            line = ecilinePplusQ(fieldN, next, ptP);
-            next = eciAdd(fieldN, coeffA, next, ptP);
+            line = ecilinePplusQ(ec, next, ptP);
+            next = eciAdd(ec, next, ptP);
         }
 
         if (verbose) {
             console.log();
-            console.log(`L[${cnt}]P,P: ` + showFRPLine(fieldN,line))
-            console.log(`v[${cnt}]P:   ` + showFRPVertical(fieldN,prev))
+            console.log(`L[${cnt}]P,P: ` + showFRPLine(ec, line))
+            console.log(`v[${cnt}]P:   ` + showFRPVertical(ec, prev))
             console.log();
         }
 
@@ -95,15 +92,16 @@ export function getFRPparams(
 // let toys = require('./build/toys.js')
 // let pair = require('./build/pairings.js')
 //
-// let tor5 = toys.ecTorsion(23,17,6, 5, true)
-// let params = pair.getFRPparams(23, 17, 6, 5, [[tor5[1][0], 0], [tor5[1][1], 0]], true)
-// pair.solveFRP(23, [[tor5[2][0], 0], [tor5[2][1], 0]], params, true)
+// let tor5   = toys.ecTorsion({fieldN: 23, coeffA: 17, coeffB: 6, rorder: 5}, true)
+// let params = pair.getFRPparams({fieldN: 23, coeffA: 17, coeffB: 6, rorder: 5}, [[tor5[1][0], 0], [tor5[1][1], 0]], true)
+// pair.solveFRP({fieldN: 23}, [[tor5[2][0], 0], [tor5[2][1], 0]], params, true)
 export function solveFRP(
-                    fieldN: number, 
+                    ec: ECurve, 
                     ptP: number[][], 
                     params: number[][][][],
                     verbose: boolean = false): number[] {
 
+    unpackEC(ec, ReqEC.N)
     let quoStr: string = "";
     let divStr: string = "";
     let quo: number[] = [];
@@ -114,14 +112,14 @@ export function solveFRP(
         let vparam = oneParam[1];
 
         // Compute Quotient for frp: L_[1]P,P * L_[2]P,P * … * L_[r-2]P,P
-        let solveL = solveLine(fieldN, ptP, lparam); 
+        let solveL = solveLine(ec, ptP, lparam); 
         if  (quo.length === 0) {
             quo = solveL;
-            quoStr = showFRPLine(fieldN, lparam);            
+            quoStr = showFRPLine(ec, lparam);            
         }
         else {
-            quo = compNmul(fieldN, quo, solveL);
-            quoStr = quoStr + ` * ${showFRPLine(fieldN, lparam)}`;
+            quo = compNmul(ec, quo, solveL);
+            quoStr = quoStr + ` * ${showFRPLine(ec, lparam)}`;
         }
 
         // Compute Divisor for frp: V_[2]P * V_[3]P * … * V_[r-2]P
@@ -129,20 +127,20 @@ export function solveFRP(
         if (idx == 0)
             return;
 
-        let solveV = solveVert(fieldN, ptP, vparam);
+        let solveV = solveVert(ec, ptP, vparam);
         if (idx == 1) {
             div = solveV;
-            divStr = showFRPVertical(fieldN, vparam);
+            divStr = showFRPVertical(ec, vparam);
         } 
         else {
-            div = compNmul(fieldN, div, solveV);
-            divStr = divStr + ` * ${showFRPVertical(fieldN, vparam)}`;
+            div = compNmul(ec, div, solveV);
+            divStr = divStr + ` * ${showFRPVertical(ec, vparam)}`;
         }
     });
  
     let res: number[] = [];
     if (div.length > 0)
-          res = compNdiv(fieldN, quo, div);
+          res = compNdiv(ec, quo, div);
     else  res = quo;
 
     if (verbose)
@@ -157,19 +155,13 @@ export function solveFRP(
 
 // Miller’s Algorithm
 // Computation of frp for any r-torsion point
-export function fastFRP(
-                    fieldN: number, 
-                    coeffA: number, 
-                    coeffB: number, 
-                    rorder: number, 
-                    ptP: number[][], 
-                    ptQ: number[][], 
-                    verbose: boolean = false): number[] {
+export function fastFRP(ec: ECurve, ptP: number[][], ptQ: number[][], verbose: boolean = false): number[] {
 
+    let {rorder} = unpackEC(ec, ReqEC.NABR)
     if (rorder < 4)
     {
-        let frp = getFRPparams(fieldN, coeffA, coeffB, rorder, ptP, verbose);        
-        return solveFRP(fieldN, ptQ, frp);
+        let frp = getFRPparams(ec, ptP, verbose);        
+        return solveFRP(ec, ptQ, frp);
     }
 
     let frpSqr = (prev: any[]): any[] => {
@@ -177,16 +169,16 @@ export function fastFRP(
         let mPt: number[][]   = prev[1];
 
         if (verbose) console.log(`frpSqr: ${prev}`);
-        let frpSqr  = compNsqr(fieldN, frpPrev);
+        let frpSqr  = compNsqr(ec, frpPrev);
 
-        let line    = eciline2P(fieldN, coeffA, coeffB, mPt, verbose);
-        let solveL  = solveLine(fieldN, ptQ, line); 
-        let quo     = compNmul(fieldN, frpSqr, solveL);
+        let line    = eciline2P(ec, mPt, verbose);
+        let solveL  = solveLine(ec, ptQ, line); 
+        let quo     = compNmul(ec, frpSqr, solveL);
 
-        let newP    = eciAdd(fieldN, coeffA, mPt, mPt);
-        let solveV  = solveVert(fieldN, ptQ, newP);
+        let newP    = eciAdd(ec, mPt, mPt);
+        let solveV  = solveVert(ec, ptQ, newP);
 
-        let res     = compNdiv(fieldN, quo, solveV);
+        let res     = compNdiv(ec, quo, solveV);
         return [res, newP];
     }
 
@@ -195,14 +187,14 @@ export function fastFRP(
         let mPt: number[][]   = prev[1];
 
         if (verbose) console.log(`frpMulti: ${prev}`);
-        let line    = ecilinePplusQ(fieldN, ptP, mPt, verbose);
-        let solveL  = solveLine(fieldN, ptQ, line); 
-        let quo     = compNmul(fieldN, frpPrev, solveL);
+        let line    = ecilinePplusQ(ec, ptP, mPt, verbose);
+        let solveL  = solveLine(ec, ptQ, line); 
+        let quo     = compNmul(ec, frpPrev, solveL);
 
-        let newP    = eciAdd(fieldN, coeffA, ptP, mPt);
-        let solveV  = solveVert(fieldN, ptQ, newP);
+        let newP    = eciAdd(ec, ptP, mPt);
+        let solveV  = solveVert(ec, ptQ, newP);
 
-        let res     = compNdiv(fieldN, quo, solveV);
+        let res     = compNdiv(ec, quo, solveV);
         return [res, newP];
     }
 
@@ -211,46 +203,44 @@ export function fastFRP(
     let frpPrev = frmin2p[0];
     let mPt     = frmin2p[1];
 
-    let line    = ecilinePplusQ(fieldN, ptP, mPt, verbose);
-    let solveL  = solveLine(fieldN, ptQ, line); 
-    return compNmul(fieldN, frpPrev, solveL);
+    let line    = ecilinePplusQ(ec, ptP, mPt, verbose);
+    let solveL  = solveLine(ec, ptQ, line); 
+    return compNmul(ec, frpPrev, solveL);
 }
 
 // Computing f(D) as defined for the Weil Pairing
 // where    f = FRP * v^r / L^r
 export function solveWeilFD(
-                    fieldN: number, 
-                    coeffA: number, 
-                    coeffB: number, 
-                    rorder: number, 
+                    ec: ECurve, 
                     ptP: number[][], 
                     ptQ: number[][], 
                     vertPt: number[][], 
                     line: number[][], 
                     verbose: boolean = false): number[] {
 
-    let funcFrm = fastFRP(fieldN, coeffA, coeffB, rorder, ptP, ptQ, verbose);
+    let {rorder} = unpackEC(ec, ReqEC.NABR)
+    let funcFrm = fastFRP(ec, ptP, ptQ, verbose);
     if (verbose) 
         console.log(`F_rm = ${strComplex(funcFrm)}`);
  
-    let funcV = solveVert(fieldN, ptQ, vertPt);
+    let funcV = solveVert(ec, ptQ, vertPt);
     if (verbose) 
-        console.log(`VERTICAL: ${showFRPVertical(fieldN,vertPt)} = ${strComplex(funcV)}`);
+        console.log(`VERTICAL: ${showFRPVertical(ec,vertPt)} = ${strComplex(funcV)}`);
  
-    let funcL = solveLine(fieldN, ptQ, line);
+    let funcL = solveLine(ec, ptQ, line);
     if (verbose) 
-        console.log(`LINE: ${showFRPLine(fieldN,line)} = ${strComplex(funcL)}`);
+        console.log(`LINE: ${showFRPLine(ec, line)} = ${strComplex(funcL)}`);
  
-    funcV = compNraise(funcV, rorder, fieldN);      //v^r
-    funcL = compNraise(funcL, rorder, fieldN);      //L^r
+    funcV = compNraise(ec, funcV, rorder);      //v^r
+    funcL = compNraise(ec, funcL, rorder);      //L^r
  
-    let quo = compNmul(fieldN,funcFrm,funcV);       //frm * v^r
+    let quo = compNmul(ec,funcFrm,funcV);       //frm * v^r
     if (verbose) 
         console.log(`F_rm * V^r = ${strComplex(quo)}`);
     if (verbose) 
         console.log(`L^r = ${strComplex(funcL)}`);
  
-    return compNdiv(fieldN,quo,funcL);              //frm * v^r / (L^r)
+    return compNdiv(ec,quo,funcL);              //frm * v^r / (L^r)
  }
 
 // Weil pairing computation
@@ -261,32 +251,30 @@ export function solveWeilFD(
 // Expected Result = (46 + 56i)
 //
 // let pair = require('./build/pairings.js')
-// pair.weilPairing(59, 1, 0, 5, [[25,0], [30,0]], [[(59-25),0], [0,30]], [[40,0], [54,0]], [[48,55], [28,51]])
+// pair.weilPairing({fieldN: 59, coeffA: 1, coeffB: 0, rorder: 5}, [[25,0], [30,0]], [[(59-25),0], [0,30]], [[40,0], [54,0]], [[48,55], [28,51]])
  export function weilPairing(
-                    fieldN: number, 
-                    coeffA: number, 
-                    coeffB: number, 
-                    rorder: number, 
+                    ec: ECurve, 
                     ptP: number[][], 
                     ptQ: number[][], 
                     ptR: number[][], 
                     ptS: number[][], 
                     verbose: boolean = false): number[] {
     
-    let ptQS = eciAdd(fieldN, coeffA, ptQ, ptS);
-    let ptPR = eciAdd(fieldN, coeffA, ptP, ptR);
+    unpackEC(ec, ReqEC.NABR)
+    let ptQS = eciAdd(ec, ptQ, ptS);
+    let ptPR = eciAdd(ec, ptP, ptR);
  
-    let linePR = ecilinePplusQ(fieldN, ptP, ptR);
-    let lineQS = ecilinePplusQ(fieldN, ptQ, ptS);
+    let linePR = ecilinePplusQ(ec, ptP, ptR);
+    let lineQS = ecilinePplusQ(ec, ptQ, ptS);
  
-    let Fqs = solveWeilFD(fieldN, coeffA, coeffB, rorder, ptP, ptQS, ptPR, linePR, verbose);
-    let Fs  = solveWeilFD(fieldN, coeffA, coeffB, rorder, ptP, ptS,  ptPR, linePR, verbose);
-    let Gpr = solveWeilFD(fieldN, coeffA, coeffB, rorder, ptQ, ptPR, ptQS, lineQS, verbose);
-    let Gr  = solveWeilFD(fieldN, coeffA, coeffB, rorder, ptQ, ptR,  ptQS, lineQS, verbose);
+    let Fqs = solveWeilFD(ec, ptP, ptQS, ptPR, linePR, verbose);
+    let Fs  = solveWeilFD(ec, ptP, ptS,  ptPR, linePR, verbose);
+    let Gpr = solveWeilFD(ec, ptQ, ptPR, ptQS, lineQS, verbose);
+    let Gr  = solveWeilFD(ec, ptQ, ptR,  ptQS, lineQS, verbose);
  
-    let quoPair = compNmul(fieldN, Fqs, Gr);
-    let divPair = compNmul(fieldN, Gpr, Fs);
-    let weil = compNdiv(fieldN, quoPair, divPair);
+    let quoPair = compNmul(ec, Fqs, Gr);
+    let divPair = compNmul(ec, Gpr, Fs);
+    let weil = compNdiv(ec, quoPair, divPair);
 
     if (verbose) {
         console.log()
@@ -302,22 +290,17 @@ export function solveWeilFD(
 // function only supports cases for embedding degree k = 2
 //
 // let pair = require('./build/pairings.js')
-// pair.weilTest(59, 1, 0, 5, [[40,0], [54,0]], [[48,55], [28,51]])
-export function weilTest(
-                    fieldN: number, 
-                    coeffA: number, 
-                    coeffB: number, 
-                    rorder: number,
-                    ptR: number[][], 
-                    ptS: number[][]): boolean {
+// pair.weilTest({fieldN: 59, coeffA: 1, coeffB: 0, rorder: 5}, [[40,0], [54,0]], [[48,55], [28,51]])
+export function weilTest(ec: ECurve, ptR: number[][], ptS: number[][]): boolean {
 
-    let powk = eciEmbeddingDegree(fieldN, rorder)
+    let {rorder} = unpackEC(ec, ReqEC.NABR)
+    let powk = eciEmbeddingDegree(ec)
     if (powk != 2)
         throw `Embedding degree for field/order not supported (must be 2): ${powk}`;
 
-    let torPts = eciTorsion(fieldN, coeffA, coeffB, rorder)
-    let g1 = eciFrobeniusTrMap(fieldN, coeffA, powk, torPts, false)
-    let g2 = eciAntiFrobeniusTrMap(fieldN, coeffA, powk, torPts, false)
+    let torPts = eciTorsion(ec)
+    let g1 = eciFrobeniusTrMap(ec, powk, torPts, false)
+    let g2 = eciAntiFrobeniusTrMap(ec, powk, torPts, false)
 
 
     console.log()
@@ -337,30 +320,22 @@ export function weilTest(
             if (compPointsEquals(g2[g2Cnt], [[0]]))
                     continue;
 
-            let weil = weilPairing(
-                        fieldN, coeffA, coeffB, rorder, 
-                        g1[g1Cnt], g2[g2Cnt], ptR, ptS, true)
+            let weil = weilPairing(ec, g1[g1Cnt], g2[g2Cnt], ptR, ptS, true)
             console.log("==========================================")
             console.log()
 
             //Identity Test
-            let weilR = compNraise(weil, rorder, fieldN);
+            let weilR = compNraise(ec, weil, rorder);
             if (!pointsEquals(weilR, [1,0]))
                 throw `weil^r = ${strComplex(weilR)} should have been 1`;
 
             //Bilinearity Test
-            let g1g1 = eciAdd(fieldN, coeffA, g1[g1Cnt], g1[g1Cnt])
-            let g2g2 = eciAdd(fieldN, coeffA, g2[g2Cnt], g2[g2Cnt])
+            let g1g1 = eciAdd(ec, g1[g1Cnt], g1[g1Cnt])
+            let g2g2 = eciAdd(ec, g2[g2Cnt], g2[g2Cnt])
 
-            let weilg1g1 = weilPairing(
-                            fieldN, coeffA, coeffB, rorder, 
-                            g1g1, g2[g2Cnt], ptR, ptS, false)
-
-            let weilg2g2 = weilPairing(
-                            fieldN, coeffA, coeffB, rorder, 
-                            g1[g1Cnt], g2g2, ptR, ptS, false)
-
-            let weil2 = compNraise(weil, 2, fieldN);
+            let weilg1g1 = weilPairing(ec, g1g1, g2[g2Cnt], ptR, ptS, false)
+            let weilg2g2 = weilPairing(ec, g1[g1Cnt], g2g2, ptR, ptS, false)
+            let weil2 = compNraise(ec, weil, 2);
 
             if (!pointsEquals(weilg1g1, weilg2g2))
                 throw `e(2P,Q) != e(P,2Q) | ${strComplex(weilg1g1)}  != ${strComplex(weilg2g2)} `;

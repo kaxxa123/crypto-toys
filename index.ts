@@ -53,7 +53,6 @@ const comp_bOption: yargs.Options = {
     type: "number"
 }
 
-
 yargs.command({
     command: "isGenerator",
     describe: "Check if alpha is a generator for group over fieldN",
@@ -137,7 +136,11 @@ yargs.command({
         coeffB: coeffBOption,
     },
     handler: function (argv: any) {
-        let pts = TOYS.ecpoints(argv.fieldN, argv.coeffA, argv.coeffB, false) 
+        let pts = TOYS.ecpoints({
+                            fieldN: argv.fieldN, 
+                            coeffA: argv.coeffA, 
+                            coeffB: argv.coeffB}) 
+
         TOYS.ecShowPoints(pts)
         console.log()
         console.log(`#E/F${argv.fieldN} = ${pts.length}`)
@@ -154,7 +157,10 @@ yargs.command({
         ypt: yptOption
     },
     handler: function (argv: any) {
-        TOYS.ec2P(argv.fieldN, argv.coeffA, [argv.xpt, argv.ypt], true)   
+        TOYS.ec2P({
+            fieldN: argv.fieldN, 
+            coeffA: argv.coeffA}, 
+            [argv.xpt, argv.ypt], true)   
     }
 });
 
@@ -186,7 +192,11 @@ yargs.command({
         }        
     },
     handler: function (argv: any) {
-        TOYS.ecAdd(argv.fieldN, argv.coeffA, [argv.xPpt, argv.yPpt], [argv.xQpt, argv.yQpt], true)   
+        TOYS.ecAdd({
+                fieldN: argv.fieldN, 
+                coeffA: argv.coeffA}, 
+                [argv.xPpt, argv.yPpt], 
+                [argv.xQpt, argv.yQpt], true)   
     }
 });
 
@@ -201,7 +211,11 @@ yargs.command({
         multiplier: multiplierOption
     },
     handler: function (argv: any) {
-        TOYS.ecMultiply(argv.fieldN, argv.coeffA, argv.multiplier, [argv.xpt, argv.ypt], true)   
+        TOYS.ecMultiply({
+                    fieldN: argv.fieldN, 
+                    coeffA: argv.coeffA}, 
+                    argv.multiplier, 
+                    [argv.xpt, argv.ypt], true)   
     }
 });
 
@@ -214,7 +228,7 @@ yargs.command({
         ypt: yptOption,
     },
     handler: function (argv: any) {
-        TOYS.ecInverse(argv.fieldN, [argv.xpt, argv.ypt], true)   
+        TOYS.ecInverse({fieldN: argv.fieldN}, [argv.xpt, argv.ypt], true)   
     }
 });
 
@@ -229,7 +243,12 @@ yargs.command({
         ypt: yptOption,
     },
     handler: function (argv: any) {
-        const cycle = TOYS.ecCycle(argv.fieldN, argv.coeffA, argv.coeffB, [argv.xpt, argv.ypt], false)
+        const cycle = TOYS.ecCycle({
+                            fieldN: argv.fieldN, 
+                            coeffA: argv.coeffA, 
+                            coeffB: argv.coeffB}, 
+                            [argv.xpt, argv.ypt], false)
+
         TOYS.ecShowCycles([cycle])
     }
 });
@@ -243,7 +262,10 @@ yargs.command({
         coeffB: coeffBOption,
     },
     handler: function (argv: any) {
-        const cycles = TOYS.ecUniqueCycles(argv.fieldN, argv.coeffA, argv.coeffB, false)   
+        const cycles = TOYS.ecUniqueCycles({
+                                    fieldN: argv.fieldN, 
+                                    coeffA: argv.coeffA, 
+                                    coeffB: argv.coeffB}, false)   
         TOYS.ecShowCycles(cycles)
     }
 });
@@ -267,12 +289,20 @@ yargs.command({
         }
     },
     handler: function (argv: any) {
-        const cycle = TOYS.ecCnxCm(argv.fieldN, argv.coeffA, argv.coeffB, argv.cn, argv.cm, false)   
+        const cycle = TOYS.ecCnxCm({
+                            fieldN: argv.fieldN, 
+                            coeffA: argv.coeffA, 
+                            coeffB: argv.coeffB}, 
+                            argv.cn, argv.cm, false)   
         TOYS.ecShowPoints(cycle)
 
         console.log()
-        let points = TOYS.ecpoints(argv.fieldN, argv.coeffA, argv.coeffB)
-        if (TOYS.compareSets(points, cycle, false))
+        let pts = TOYS.ecpoints({
+                            fieldN: argv.fieldN, 
+                            coeffA: argv.coeffA, 
+                            coeffB: argv.coeffB}) 
+
+        if (TOYS.compareSets(pts, cycle, false))
                 console.log(`C[${argv.cn}] * C[${argv.cm}] produces same points as EC group`)
         else    console.log(`C[${argv.cn}] * C[${argv.cm}] DOES NOT produce same points as EC group`)
     }
@@ -292,7 +322,12 @@ yargs.command({
         }
     },
     handler: function (argv: any) {
-        const cycle = TOYS.ecTorsion(argv.fieldN, argv.coeffA, argv.coeffB, argv.rorder, false)   
+        const cycle = TOYS.ecTorsion({
+                            fieldN: argv.fieldN, 
+                            coeffA: argv.coeffA, 
+                            coeffB: argv.coeffB, 
+                            rorder: argv.rorder}, false)   
+                            
         TOYS.ecShowPoints(cycle)
     }
 });
@@ -306,7 +341,10 @@ yargs.command({
         coeffB: coeffBOption,
     },
     handler: function (argv: any) {
-        let pts = ITOYS.ecipoints(argv.fieldN, argv.coeffA, argv.coeffB, false)   
+        let pts = ITOYS.ecipoints({
+                            fieldN: argv.fieldN, 
+                            coeffA: argv.coeffA, 
+                            coeffB: argv.coeffB}, false)   
 
         ITOYS.eciShowPoints(pts)
         console.log()
@@ -326,7 +364,10 @@ yargs.command({
         yPpt_imag: comp_bOption,
     },
     handler: function (argv: any) {
-        ITOYS.eci2P(argv.fieldN, argv.coeffA, [[argv.xPpt_real,argv.xPpt_imag],[argv.yPpt_real, argv.yPpt_imag]], true)   
+        ITOYS.eci2P({
+                fieldN: argv.fieldN, 
+                coeffA: argv.coeffA}, 
+                [[argv.xPpt_real,argv.xPpt_imag],[argv.yPpt_real, argv.yPpt_imag]], true)   
     }
 });
 
@@ -346,9 +387,11 @@ yargs.command({
         yQpt_imag: comp_bOption,
     },
     handler: function (argv: any) {
-        ITOYS.eciAdd(argv.fieldN, argv.coeffA, 
-                            [[argv.xPpt_real,argv.xPpt_imag],[argv.yPpt_real, argv.yPpt_imag]], 
-                            [[argv.xQpt_real,argv.xQpt_imag],[argv.yQpt_real, argv.yQpt_imag]], true)   
+        ITOYS.eciAdd({
+                fieldN: argv.fieldN, 
+                coeffA: argv.coeffA}, 
+                [[argv.xPpt_real,argv.xPpt_imag],[argv.yPpt_real, argv.yPpt_imag]], 
+                [[argv.xQpt_real,argv.xQpt_imag],[argv.yQpt_real, argv.yQpt_imag]], true)   
     }
 });
 
@@ -365,7 +408,11 @@ yargs.command({
         multiplier: multiplierOption
     },
     handler: function (argv: any) {
-        ITOYS.eciMultiply(argv.fieldN, argv.coeffA, argv.multiplier, [[argv.xPpt_real,argv.xPpt_imag],[argv.yPpt_real, argv.yPpt_imag]], true)   
+        ITOYS.eciMultiply({
+                fieldN: argv.fieldN, 
+                coeffA: argv.coeffA}, 
+                argv.multiplier, 
+                [[argv.xPpt_real,argv.xPpt_imag],[argv.yPpt_real, argv.yPpt_imag]], true)   
     }
 });
 
@@ -380,7 +427,9 @@ yargs.command({
         yPpt_imag: comp_bOption,
     },
     handler: function (argv: any) {
-        ITOYS.eciInverse(argv.fieldN, [[argv.xPpt_real,argv.xPpt_imag],[argv.yPpt_real, argv.yPpt_imag]], true)   
+        ITOYS.eciInverse(
+                    {fieldN: argv.fieldN}, 
+                    [[argv.xPpt_real,argv.xPpt_imag],[argv.yPpt_real, argv.yPpt_imag]], true)   
     }
 });
 
@@ -397,7 +446,11 @@ yargs.command({
         yPpt_imag: comp_bOption,
     },
     handler: function (argv: any) {
-        const cycle = ITOYS.eciCycle(argv.fieldN, argv.coeffA, argv.coeffB, [[argv.xPpt_real,argv.xPpt_imag],[argv.yPpt_real, argv.yPpt_imag]], false)
+        const cycle = ITOYS.eciCycle({
+                                fieldN: argv.fieldN, 
+                                coeffA: argv.coeffA, 
+                                coeffB: argv.coeffB}, 
+                                [[argv.xPpt_real,argv.xPpt_imag],[argv.yPpt_real, argv.yPpt_imag]], false)
         ITOYS.eciShowCycles([cycle])
     }
 });
@@ -411,7 +464,10 @@ yargs.command({
         coeffB: coeffBOption,
     },
     handler: function (argv: any) {
-        const cycles = ITOYS.eciUniqueCycles(argv.fieldN, argv.coeffA, argv.coeffB, false)   
+        const cycles = ITOYS.eciUniqueCycles({
+                                fieldN: argv.fieldN, 
+                                coeffA: argv.coeffA, 
+                                coeffB: argv.coeffB}, false)   
         ITOYS.eciShowCycles(cycles)
     }
 });
@@ -430,7 +486,11 @@ yargs.command({
         }
     },
     handler: function (argv: any) {
-        const cycle = ITOYS.eciTorsion(argv.fieldN, argv.coeffA, argv.coeffB, argv.rorder, false)   
+        const cycle = ITOYS.eciTorsion({
+                                fieldN: argv.fieldN, 
+                                coeffA: argv.coeffA, 
+                                coeffB: argv.coeffB, 
+                                rorder: argv.rorder}, false)   
         ITOYS.eciShowPoints(cycle)
     }
 });

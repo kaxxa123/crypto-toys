@@ -1,6 +1,5 @@
+import {ECurve, unpackEC, ReqEC} from './config'
 import * as TOYS from "./toys"
-
-export let iSQUARED = -1;
 
 // Compare two complex points in the format [[xa,xb],[ya,yb]]
 // ...with the exception of the point at infinity being [[0]]
@@ -47,43 +46,65 @@ export function compsub(xx: number[], yy: number[]): number[]  {
 }
 
 // Complex number multiplication (xa + xb.i) * (ya + yb.i)
-export function compmul(xx: number[], yy: number[]): number[] {
+export function compmul(xx: number[], yy: number[], iSQUARED: number): number[] {
     let aa = xx[0]*yy[0] + iSQUARED*xx[1]*yy[1];
     let bb = xx[0]*yy[1] + xx[1]*yy[0];
     return [aa,bb];
 }
 
+// Compute chain of complex number multiplications
+export function compmulEx(values: number[][], iSQUARED: number): number[] {
+    if (values.length == 0)
+        throw 'compmulEx empty value array';
+
+    let res: number[] = [1,0];
+    values.forEach((val) => {res = compmul(res, val, iSQUARED)})
+    return res;
+}
+
 // Complex number multiplication (xa + xb.i) * (ya + yb.i) (% fieldN)
-export function compNmul(fieldN: number, xx: number[], yy: number[]): number[]  {
-    return compmod(compmul(xx, yy), fieldN);
+export function compNmul(ec: ECurve, xx: number[], yy: number[]): number[]  {
+    let {fieldN, iSQR} = unpackEC(ec, ReqEC.N);
+    return compmod(compmul(xx, yy, iSQR), fieldN);
  }
 
+// Compute chain of complex number multiplications (% fieldN)
+export function compNmulEx(ec: ECurve, values: number[][]): number[] {
+    unpackEC(ec, ReqEC.N);
+    if (values.length == 0)
+        throw 'compmulEx empty value array';
+        
+    let res: number[] = [1,0];
+    values.forEach((val) => {res = compNmul(ec, res, val)})
+    return res;
+}
+
 // Complex number squaring (xa + xb.i) * (xa + xb.i) (% fieldN)
-export function compNsqr(fieldN: number, xx: number[]): number[]  {
-    return compNmul(fieldN, xx, xx);
+export function compNsqr(ec: ECurve, xx: number[]): number[]  {
+    unpackEC(ec, ReqEC.N);
+    return compNmul(ec, xx, xx);
 }
 
 // Complex number division (xa + xb.i) / (ya + yb.i) (% fieldN)
-export function compNdiv(fieldN: number, xx: number[], yy: number[]): number[]  {
-    let quo = compNmul(fieldN, xx, [yy[0], (-1)*yy[1]]);
-    let div = compNmul(fieldN, yy, [yy[0], (-1)*yy[1]]);
+export function compNdiv(ec: ECurve, xx: number[], yy: number[]): number[]  {
+    let {fieldN} = unpackEC(ec, ReqEC.N);
+    let quo = compNmul(ec, xx, [yy[0], (-1)*yy[1]]);
+    let div = compNmul(ec, yy, [yy[0], (-1)*yy[1]]);
     if (div[1] !== 0) throw "Unexpected: Complex in divisor";
     let inv = TOYS.inverse(fieldN, div[0], false);
-    return compNmul(fieldN, quo, [inv,0]);
+    return compNmul(ec, quo, [inv,0]);
 }
 
 // Complex number exponentiation (xa + xb.i)**pow  (% fieldN)
-export function compNraise(xx: number[], pow: number, fieldN: number) { 
-    return TOYS.sqrAndMult([0,1], xx, pow, (aa: number[], bb: number[]) => compNmul(fieldN, aa, bb)); 
+export function compNraise(ec: ECurve, xx: number[], pow: number) { 
+    unpackEC(ec, ReqEC.N);
+    return TOYS.sqrAndMult([0,1], xx, pow, (aa: number[], bb: number[]) => compNmul(ec, aa, bb)); 
 }
 
 // Lookup for points on an EC: y**2  % n = (x**3 + A*x + B) % n
 // ...by trying out all combinations
-export function ecipoints(
-                fieldN: number, 
-                coeffA: number, 
-                coeffB: number, 
-                verbose: boolean = false): number[][][] {
+export function ecipoints(ec: ECurve,  verbose: boolean = false): number[][][] {
+    let {fieldN, coeffA, coeffB} = unpackEC(ec, ReqEC.NAB);
     let out: number[][][] = [[[0]]];
 
     //Zero/Point at Infinity is always present
@@ -97,16 +118,16 @@ export function ecipoints(
     let ysqrd: number[][] = []; 
     for (let cntReal = 0; cntReal < fieldN; ++cntReal) 
         for (let cntImg = 0; cntImg < fieldN; ++cntImg) 
-            ysqrd.push(compNsqr(fieldN, [cntReal, cntImg]));
+            ysqrd.push(compNsqr(ec, [cntReal, cntImg]));
 
     // Lookup these y**2 values by computing
     // (x**3 + A*x + B) for all possible x values...
     // and check if these match the y**2 values
-    let rightside = (fieldN: number, x: number[]) => {
+    let rightside = (x: number[]) => {
         //Compute: y^2 given x: y^2 = x^3 + A*x + B
         //where x = a + bi
-        let xcubed  = compNraise(x, 3, fieldN)                      //x^3
-        let Ax      = compNmul(fieldN, x, [coeffA,0])               // Ax
+        let xcubed  = compNraise(ec, x, 3)                          //x^3
+        let Ax      = compNmul(ec, x, [coeffA,0])                   // Ax
         let ans     = compadd(compadd(xcubed,Ax),[coeffB, 0])       //x^3 + coeffA*x + coeffB
 
         return compmod(ans,fieldN);
@@ -114,7 +135,7 @@ export function ecipoints(
 
     for (let cntReal = 0; cntReal < fieldN; ++cntReal) 
         for (let cntImg = 0; cntImg < fieldN; ++cntImg)  {
-            let solution = rightside(fieldN, [cntReal,cntImg]);
+            let solution = rightside([cntReal,cntImg]);
 
             ysqrd.forEach((ysqVal,idx) => {
                 
@@ -135,23 +156,19 @@ export function ecipoints(
 
 // Check if point is within set
 export function ecihasPoint(set: number[][][], pt: number[][]): number {
-    return set.findIndex((setPt,idx) => compPointsEquals(setPt, pt) );
+    return set.findIndex((setPt) => compPointsEquals(setPt, pt) );
 }
 
 // Check if P + Q = R for any P, Q gives an R within the same group
 //
 // let itoys = require('./build/i-toys.js')
-// itoys.eciClosure(11, 4, 3, true)
+// itoys.eciClosure({fieldN: 11, coeffA: 4, coeffB: 3}, true)
+// itoys.eciClosure({fieldN: 13, coeffA: 4, coeffB: 3}, true)
 //
-// itoys.eciClosure(13, 4, 3, true)
-//
-export function eciClosure(
-                fieldN: number, 
-                coeffA: number, 
-                coeffB: number, 
-                verbose: boolean = false): boolean {
+export function eciClosure(ec: ECurve, verbose: boolean = false): boolean {
 
-    let pts = ecipoints(fieldN, coeffA, coeffB, false);
+    unpackEC(ec, ReqEC.NAB);
+    let pts = ecipoints(ec, false);
 
     let confirms: number = 0;
     let notComputed: number = 0;
@@ -161,7 +178,7 @@ export function eciClosure(
 
             let ptR: number[][] = [[0]];
             try {
-                ptR = eciAdd(fieldN, coeffA, pts[icntP], pts[icntQ], verbose) 
+                ptR = eciAdd(ec, pts[icntP], pts[icntQ], verbose) 
                 if (ecihasPoint(pts, ptR) == -1) {
                     console.log(`Closure Test failed for: ${strCompPt(pts[icntP])} + ${strCompPt(pts[icntQ])}`)
                     return false;
@@ -190,32 +207,37 @@ export function eciClosure(
 // P = [[xa, xb],[ya, yb]]
 // Q = [[xa, xb],[ya, yb]]
 // m = (yQ - yP)/(xQ - xP) (% fieldN)
-export function ecigradPplusQ(fieldN: number, ptP: number[][], ptQ: number[][]): number[] {
+export function ecigradPplusQ(ec: ECurve, ptP: number[][], ptQ: number[][]): number[] {
+    unpackEC(ec, ReqEC.N);
+
     let quo = compsub(ptQ[1], ptP[1]);
     let div = compsub(ptQ[0], ptP[0]);
-    let ans = compNdiv(fieldN, quo, div);
+    let ans = compNdiv(ec, quo, div);
     return ans;
 }
 
 // Compute the intercept of a line between two points expressed as complex numbers (% fieldN)
-export function eciInterceptPplusQ(fieldN: number, ptP: number[][], ptQ: number[][]): number[] {
-    let y1x2 = compmul(ptP[1], ptQ[0]);
-    let y2x1 = compmul(ptQ[1], ptP[0]);
+export function eciInterceptPplusQ(ec: ECurve, ptP: number[][], ptQ: number[][]): number[] {
+    let {iSQR} = unpackEC(ec, ReqEC.N);
+
+    let y1x2 = compmul(ptP[1], ptQ[0], iSQR);
+    let y2x1 = compmul(ptQ[1], ptP[0], iSQR);
     let quo  = compsub(y1x2, y2x1);
     let div  = compsub(ptQ[0], ptP[0]);
-    let ans  = compNdiv(fieldN, quo, div);
+    let ans  = compNdiv(ec, quo, div);
     return ans;
 }
 
 //Compute the line equation between two complex numbers
 export function ecilinePplusQ(
-                    fieldN: number, 
+                    ec: ECurve, 
                     ptP: number[][], 
                     ptQ: number[][], 
                     verbose: boolean = false): number[][] {
-                        
-    let gradient = ecigradPplusQ(fieldN, ptP, ptQ);
-    let intercept = eciInterceptPplusQ(fieldN, ptP, ptQ);
+
+    unpackEC(ec, ReqEC.N);
+    let gradient = ecigradPplusQ(ec, ptP, ptQ);
+    let intercept = eciInterceptPplusQ(ec, ptP, ptQ);
 
     if (verbose)  {   
         const strm = strComplex(gradient);
@@ -234,14 +256,13 @@ export function ecilinePplusQ(
 // WARNING: function does not verify that the supplied point is actually on the curve!
 // WARNING: function does not support doubling the same point!
 export function eciPplusQ(
-                    fieldN: number, 
+                    ec: ECurve, 
                     ptP: number[][], 
                     ptQ: number[][],
                     verbose: boolean = false): number[][] {
 
-    let computePplusQ = (fieldN: number, 
-                        ptP: number[][], 
-                        ptQ: number[][]): number[][] => {
+    let {fieldN, iSQR} = unpackEC(ec, ReqEC.N);
+    let computePplusQ = (ptP: number[][], ptQ: number[][]): number[][] => {
 
         if (compPointsEquals(ptP,ptQ))
             throw "Compute 2P using comp2P.";                           //Function cannot handle point doubling
@@ -250,22 +271,22 @@ export function eciPplusQ(
         if (compPointsEquals(ptQ, [[0]]))         return ptP;
         if (TOYS.pointsEquals(ptP[0], ptQ[0]))    return [[0]];         //PX = QX -> Points on a straight line return Zero
 
-        let gradient = ecigradPplusQ(fieldN, ptP, ptQ);
-        let mSqr     = compmul(gradient, gradient);
+        let gradient = ecigradPplusQ(ec, ptP, ptQ);
+        let mSqr     = compmul(gradient, gradient, iSQR);
 
-        let xx  = compsub(mSqr, ptP[0]);        //  m^2 - x1
-        xx      = compsub(xx,   ptQ[0]);        //  m^2 - x1 - x2
+        let xx  = compsub(mSqr, ptP[0]);            //  m^2 - x1
+        xx      = compsub(xx,   ptQ[0]);            //  m^2 - x1 - x2
         xx      = compmod(xx, fieldN);
 
-        let yy  = compsub(ptP[0], xx);          //  (x1 - x_PQ)
-        yy      = compmul(gradient, yy);        // m(x1 - x_PQ)
-        yy      = compsub(yy, ptP[1]);          // m(x1 - x_PQ) - y1
+        let yy  = compsub(ptP[0], xx);              //  (x1 - x_PQ)
+        yy      = compmul(gradient, yy, iSQR);      // m(x1 - x_PQ)
+        yy      = compsub(yy, ptP[1]);              // m(x1 - x_PQ) - y1
         yy      = compmod(yy, fieldN);
 
         return [xx,yy];
     }
 
-    let ptPQ = computePplusQ(fieldN, ptP, ptQ);
+    let ptPQ = computePplusQ(ptP, ptQ);
 
     if (verbose) 
         console.log(`P+Q = ${strCompPt(ptP)} + ${strCompPt(ptQ)} = ${strCompPt(ptPQ)}`);
@@ -274,16 +295,17 @@ export function eciPplusQ(
 }
 
 // Compute -P = (x, -y)
-export function eciInverse(fieldN: number, ptP: number[][], verbose: boolean = false): number[][] {
+export function eciInverse(ec: ECurve, ptP: number[][], verbose: boolean = false): number[][] {
 
-    let invertP = (fieldN: number, ptP: number[][]): number[][] => {    
+    let {fieldN} = unpackEC(ec, ReqEC.N);
+    let invertP = (ptP: number[][]): number[][] => {    
         if (compPointsEquals(ptP, [[0]]))    
             return ptP;
 
         return [ptP[0], compmod([-1*ptP[1][0], -1*ptP[1][1]], fieldN)];
     }
 
-    let minusP = invertP(fieldN, ptP)
+    let minusP = invertP(ptP)
 
     if (verbose) 
         console.log(`-P = ${strCompPt(minusP)}`);
@@ -295,40 +317,40 @@ export function eciInverse(fieldN: number, ptP: number[][], verbose: boolean = f
 // where    m = (3x**2 + A) (2y)**-1
 //
 // WARNING: function does not verify that the supplied point is actually on the curve!
-export function ecigrad2P(fieldN: number, coeffA: number, ptP: number[][]): number[] {
-    let quo = compmul(ptP[0], ptP[0]);              //  x^2
-    quo = compmul(quo, [3,0]);                      // 3x^2
-    quo = compadd(quo, [coeffA,0]);                 // 3x^2 + A
+export function ecigrad2P(ec: ECurve, ptP: number[][]): number[] {
+    let {coeffA, iSQR} = unpackEC(ec, ReqEC.NA);
 
-    let div = compmul(ptP[1], [2,0]);               //  2y
-    return compNdiv(fieldN, quo, div);              // (3x^2 + A) (2y)^-1
+    let quo = compmulEx([[3,0], ptP[0], ptP[0]], iSQR);     // 3x^2
+    quo = compadd(quo, [coeffA,0]);                         // 3x^2 + A
+
+    let div = compmul(ptP[1], [2,0], iSQR);                 //  2y
+    return compNdiv(ec, quo, div);                          // (3x^2 + A) (2y)^-1
 }
 
 // Compute the interecept of tangent to a point expressed as a complex number (% fieldN)
 // where (Ax + 2B - x^3) * (2y)^-1
 //
 // WARNING: function does not verify that the supplied point is actually on the curve!
-export function eciIntercept2P(fieldN: number, coeffA: number, coeffB: number, ptP: number[][]): number[] {
-    let quo = compmul(ptP[0], [coeffA,0]);          // Ax
-    quo = compadd(quo, [2*coeffB,0]);               // Ax + 2B
+export function eciIntercept2P(ec: ECurve, ptP: number[][]): number[] {
+    let {coeffA, coeffB, iSQR} = unpackEC(ec, ReqEC.NAB);
 
-    let xcubed = compmul(ptP[0], ptP[0]);           //  x^2
-    xcubed = compmul(xcubed, ptP[0]);               //  x^3
-    quo = compsub(quo, xcubed);                     // Ax + 2B - x^3
+    let quo = compmul(ptP[0], [coeffA,0], iSQR);                // Ax
+    quo = compadd(quo, [2*coeffB,0]);                           // Ax + 2B
 
-    let div = compmul(ptP[1], [2,0]);               //  2y
-    return compNdiv(fieldN, quo, div);              // (Ax + 2B - x^3) * (2y)^-1
+    let xcubed = compmulEx([ptP[0], ptP[0], ptP[0]], iSQR);     // x^3
+    quo = compsub(quo, xcubed);                                 // Ax + 2B - x^3
+
+    let div = compmul(ptP[1], [2,0], iSQR);                     //  2y
+    return compNdiv(ec, quo, div);                        // (Ax + 2B - x^3) * (2y)^-1
 }
 
 //Compute the line equation for a tangent to a point
-export function eciline2P(
-                    fieldN: number, 
-                    coeffA: number, 
-                    coeffB: number, 
-                    ptP: number[][], 
-                    verbose: boolean = false): number[][] {
-    let gradient = ecigrad2P(fieldN, coeffA, ptP);
-    let intercept = eciIntercept2P(fieldN, coeffA, coeffB, ptP);
+export function eciline2P(ec: ECurve, ptP: number[][], verbose: boolean = false): number[][] {
+
+    unpackEC(ec, ReqEC.NAB);
+
+    let gradient = ecigrad2P(ec, ptP);
+    let intercept = eciIntercept2P(ec, ptP);
 
     let strm = strComplex(gradient);
     let strc = strComplex(intercept);
@@ -338,13 +360,11 @@ export function eciline2P(
 
 // Compute P+P over an EC
 // WARNING: function does not verify that the supplied point is actually on the curve!
-export function eci2P(
-                    fieldN: number, 
-                    coeffA: number, 
-                    ptP: number[][], 
-                    verbose: boolean = false): number[][] {
+export function eci2P(ec: ECurve, ptP: number[][], verbose: boolean = false): number[][] {
 
-    let compute2P = (fieldN: number, coeffA: number, ptP: number[][]): number[][] => { 
+    let {fieldN, iSQR} = unpackEC(ec, ReqEC.NA);
+
+    let compute2P = (ptP: number[][]): number[][] => { 
         //0 + 0 = 0
         if (compPointsEquals(ptP, [[0]]))
             return [[0]];
@@ -353,21 +373,21 @@ export function eci2P(
         if (TOYS.pointsEquals(ptP[1],[0,0]))
             return [[0]];
 
-        let gradient = ecigrad2P(fieldN, coeffA, ptP);                 // m
-        let mSqr = compmul(gradient,gradient);                      // m^2
+        let gradient = ecigrad2P(ec, ptP);                  // m
+        let mSqr = compmul(gradient,gradient, iSQR);        // m^2
 
-        let xx = compsub(mSqr, ptP[0]);                             // m^2 - x
-        xx = compsub(xx, ptP[0]);                                   // m^2 - x -x
+        let xx = compsub(mSqr, ptP[0]);                     // m^2 - x
+        xx = compsub(xx, ptP[0]);                           // m^2 - x -x
         xx = compmod(xx, fieldN);
 
-        let yy = compsub(ptP[0], xx);                               // x - x3
-        yy = compmul(yy, gradient);                                 // m(x - x3)
-        yy = compsub(yy, ptP[1]);                                   // m(x - x3) - y
+        let yy = compsub(ptP[0], xx);                       // x - x3
+        yy = compmul(yy, gradient, iSQR);                   // m(x - x3)
+        yy = compsub(yy, ptP[1]);                           // m(x - x3) - y
         yy = compmod(yy, fieldN);
         return [xx,yy];
     }
 
-    let pt2P = compute2P(fieldN, coeffA, ptP);
+    let pt2P = compute2P(ptP);
 
     if (verbose) 
         console.log(`2P = ${strCompPt(ptP)} + ${strCompPt(ptP)} = ${strCompPt(pt2P)}`);
@@ -377,25 +397,21 @@ export function eci2P(
 
 // Compute P+P over an EC: y**2  % n = (x**3 + A*x + B) % n
 // WARNING: function does not verify that the supplied point is actually on the curve!
-export function eciAdd(
-                        fieldN: number, 
-                        coeffA: number, 
+export function eciAdd( ec: ECurve, 
                         ptP: number[][], 
                         ptQ: number[][], 
                         verbose: boolean = false): number[][] {
 
-    let computeAdd = (  fieldN: number, 
-                        coeffA: number, 
-                        ptP: number[][], 
-                        ptQ: number[][]): number[][]  => {
+    unpackEC(ec, ReqEC.NA);
+
+    let computeAdd = (ptP: number[][], ptQ: number[][]): number[][]  => {
         if (compPointsEquals(ptP, [[0]]))    return ptQ;
         if (compPointsEquals(ptQ, [[0]]))    return ptP;
-        if (compPointsEquals(ptP, ptQ))     return eci2P(fieldN, coeffA, ptP, false);
-        return eciPplusQ(fieldN, ptP, ptQ, false);
+        if (compPointsEquals(ptP, ptQ))     return eci2P(ec, ptP, false);
+        return eciPplusQ(ec, ptP, ptQ, false);
     }
 
-    let ptPQ = computeAdd(fieldN, coeffA, ptP, ptQ);
-
+    let ptPQ = computeAdd(ptP, ptQ);
     if (verbose) 
         console.log(`P+Q = ${strCompPt(ptP)} + ${strCompPt(ptQ)} = ${strCompPt(ptPQ)}`);
 
@@ -405,25 +421,22 @@ export function eciAdd(
 // Compute m*P over an EC: y**2  % n = (x**3 + A*x + B) % n
 // WARNING: function does not verify that the supplied point is actually on the curve!
 export function eciMultiply(
-                    fieldN: number, 
-                    coeffA: number, 
+                    ec: ECurve, 
                     multiplier: number, 
                     ptP: number[][], 
                     verbose: boolean = false): number[][] { 
-    return TOYS.sqrAndMult([[0]], ptP, multiplier, (ptA: number[][], ptB: number[][]): number[][] => eciAdd(fieldN, coeffA, ptA, ptB, verbose)); 
+    unpackEC(ec, ReqEC.NA);
+    return TOYS.sqrAndMult([[0]], ptP, multiplier, (ptA: number[][], ptB: number[][]): number[][] => eciAdd(ec, ptA, ptB, verbose)); 
 }
 
 // Given an initial point P, compute 2P, 3P, 4P until the cycle is closed.
 // A point that cycles through ALL group elements is a generator.
-export function eciCycle(
-                    fieldN: number, 
-                    coeffA: number, 
-                    coeffB: number, 
-                    ptP: number[][],
-                    verbose: boolean = false): number[][][] {
+export function eciCycle(ec: ECurve, ptP: number[][], verbose: boolean = false): number[][][] {
+
+    let {fieldN} = unpackEC(ec, ReqEC.NAB);
 
     //Get list of all points on this curve
-    let allPoints = ecipoints(fieldN, coeffA, coeffB, false);
+    let allPoints = ecipoints(ec, false);
     if (ecihasPoint(allPoints, ptP) == -1)
         throw `Failed: Input point is not within E/F${fieldN}`
 
@@ -431,7 +444,7 @@ export function eciCycle(
     if (verbose) 
         console.log(`P = ${strCompPt(ptP)}`);
 
-    let ptNew = eciAdd(fieldN, coeffA, ptP, ptP);
+    let ptNew = eciAdd(ec, ptP, ptP);
     while (!compPointsEquals(ptNew, ptP))
     {  
         if (cycle.length > allPoints.length)
@@ -444,7 +457,7 @@ export function eciCycle(
         if (verbose) 
             console.log(`${cycle.length}P = ${strCompPt(ptNew)}`);
 
-        ptNew = eciAdd(fieldN,coeffA,ptP,ptNew);
+        ptNew = eciAdd(ec, ptP, ptNew);
     }
 
     if (verbose)
@@ -454,13 +467,10 @@ export function eciCycle(
 }
 
 // For each EC point compute its cycle
-export function eciAllCycles(
-                    fieldN: number, 
-                    coeffA: number, 
-                    coeffB: number, 
-                    verbose: boolean = false): number[][][][]  {
+export function eciAllCycles(ec: ECurve, verbose: boolean = false): number[][][][]  {
 
-    let points = ecipoints(fieldN,coeffA,coeffB, false);
+    unpackEC(ec, ReqEC.NAB);
+    let points = ecipoints(ec);
     let allcycles = [];
 
     for (let cnt = 0; cnt < points.length; ++cnt) {
@@ -469,7 +479,7 @@ export function eciAllCycles(
         if (compPointsEquals(points[cnt], [[0]])) 
             continue;
 
-        let onecycle = eciCycle(fieldN, coeffA, coeffB, points[cnt]);
+        let onecycle = eciCycle(ec, points[cnt]);
         allcycles.push(onecycle);
 
         if (verbose)
@@ -522,13 +532,10 @@ export function compCompareSets(
 }
 
 // For each EC point compute its cycle, filtering out duplicates.
-export function eciUniqueCycles(
-                    fieldN: number, 
-                    coeffA: number, 
-                    coeffB: number, 
-                    verbose: boolean = false): number[][][][] {
+export function eciUniqueCycles(ec: ECurve, verbose: boolean = false): number[][][][] {
 
-    let cycAll = eciAllCycles(fieldN,coeffA,coeffB);
+    unpackEC(ec, ReqEC.NAB);
+    let cycAll = eciAllCycles(ec);
     let cycOut = [cycAll[0]];
     let cycIdx = [0];
 
@@ -575,24 +582,19 @@ export function eciFilterCycles(cycles: number[][][][], rorder: number): number[
 // "...a point is “killed” (sent to O) when multiplied by its order"
 // Pairings for beginners - Craig Costello
 //
-// itoys.eciTorsion(11, 0, 4, 3)
-export function eciTorsion(
-                    fieldN: number, 
-                    coeffA: number, 
-                    coeffB: number, 
-                    rorder: number, 
-                    verbose: boolean = false): number[][][] {
+// itoys.eciTorsion({fieldN: 11, coeffA: 0, coeffB: 4, rorder: 3})
+export function eciTorsion(ec: ECurve, verbose: boolean = false): number[][][] {
 
+    let {rorder} = unpackEC(ec, ReqEC.NABR);
     let ptsR: number[][][] = [];
-    
-    let pts = ecipoints(fieldN,coeffA,coeffB, false);
+    let pts = ecipoints(ec);
     if (pts.length % rorder != 0)
         throw `r (${rorder}) is not a factor of #E (${pts.length})`
 
     // A point Q that is in the r-torsion will satisfy this relation:
     // rQ = 0
     for (let cnt = 0; cnt < pts.length; ++cnt) {
-        let rQ = eciMultiply(fieldN, coeffA, rorder, pts[cnt], false);
+        let rQ = eciMultiply(ec, rorder, pts[cnt], false);
         
         if (compPointsEquals(rQ, [[0]]))
             ptsR.push(pts[cnt]);
@@ -610,16 +612,14 @@ export function eciTorsion(
 // which is 0, any other point in E[r] can be obtained as [i]P + [j]Q for i, j = [0, r-1]
 // Pairings for beginners - Craig Costello
 //
-// itoys.eciEr(11, 0, 4, 3, [[0,0],[9,0]], [[7,2],[0,1]])
+// itoys.eciEr({fieldN: 11, coeffA: 0, coeffB: 4, rorder: 3}, [[0,0],[9,0]], [[7,2],[0,1]])
 export function eciEr(
-                fieldN: number, 
-                coeffA: number, 
-                coeffB: number, 
-                rorder: number, 
+                ec: ECurve, 
                 ptP: number[][], 
                 ptQ: number[][],
                 verbose: boolean = false): number[][][] {
 
+    let {rorder} = unpackEC(ec, ReqEC.NABR);
     let ptsOut = [];
 
     //Check P and Q are not Zero
@@ -627,25 +627,25 @@ export function eciEr(
         throw `Point P, Q cannot be Zero`
 
     //Check if P and Q are truly an r-order point
-    let zero = eciMultiply(fieldN, coeffA, rorder, ptP, false);
+    let zero = eciMultiply(ec, rorder, ptP, false);
     if (!compPointsEquals(zero, [[0]])) 
         throw `Point P is not of order ${rorder}`
 
-    zero = eciMultiply(fieldN, coeffA, rorder, ptQ, false);
+    zero = eciMultiply(ec, rorder, ptQ, false);
     if (!compPointsEquals(zero, [[0]])) 
         throw `Point Q is not of order ${rorder}`
 
     //Check that P and Q are not in the same subgroup
-    let cycleP = eciCycle(fieldN, coeffA, coeffB, ptP, false)
+    let cycleP = eciCycle(ec, ptP, false)
     if (ecihasPoint(cycleP, ptQ) != -1)
         throw `P and Q are in the same subgroup`
     
     for (let cnt1 = 0; cnt1 < rorder; ++cnt1)
         for (let cnt2 = 0; cnt2 < rorder; ++cnt2) {
-            let mP = (cnt1 == 0) ? [[0]] : eciMultiply(fieldN, coeffA, cnt1, ptP, false);
-            let mQ = (cnt2 == 0) ? [[0]] : eciMultiply(fieldN, coeffA, cnt2, ptQ, false);
+            let mP = (cnt1 == 0) ? [[0]] : eciMultiply(ec, cnt1, ptP, false);
+            let mQ = (cnt2 == 0) ? [[0]] : eciMultiply(ec, cnt2, ptQ, false);
 
-            let newP = eciAdd(fieldN, coeffA, mP, mQ, false);
+            let newP = eciAdd(ec, mP, mQ, false);
             ptsOut.push(newP)
         }
 
@@ -660,11 +660,12 @@ export function eciEr(
 //
 // This mapping is applied k times computing π^k
 export function eciFrobeniusPi(
-                        fieldN: number, 
+                        ec: ECurve,
                         powk: number, 
                         ptP: number[][], 
                         verbose: boolean = false): number[][] {
                   
+    let {fieldN} = unpackEC(ec, ReqEC.N);                            
     let strP = strCompPt(ptP)
     let ptPi = ptP;
 
@@ -674,8 +675,8 @@ export function eciFrobeniusPi(
         let piY = ptPi[1];
 
         for (let cntk = 0; cntk < powk; ++cntk) {
-            piX = compNraise(piX, fieldN, fieldN);
-            piY = compNraise(piY, fieldN, fieldN);
+            piX = compNraise(ec, piX, fieldN);
+            piY = compNraise(ec, piY, fieldN);
         }
 
         ptPi = [piX, piY]
@@ -695,12 +696,12 @@ export function eciFrobeniusPi(
 // ...to 1 subgroup of the r-torsion
 // Pairings for beginners - Craig Costello
 export function eciFrobeniusTr(
-                        fieldN: number, 
-                        coeffA: number,
+                        ec: ECurve,
                         powk: number, 
                         ptP: number[][],
                         verbose: boolean = false): number[][] {
 
+    let {fieldN} = unpackEC(ec, ReqEC.NA);
     let strP = strCompPt(ptP)
     let ptOut = ptP;
 
@@ -709,9 +710,9 @@ export function eciFrobeniusTr(
         let piY = ptOut[1];
 
         for (let cntk = 1; cntk < powk; ++cntk) {
-            piX = compNraise(piX, fieldN, fieldN);
-            piY = compNraise(piY, fieldN, fieldN);
-            ptOut  = eciAdd(fieldN, coeffA, ptOut, [piX, piY], false);
+            piX = compNraise(ec, piX, fieldN);
+            piY = compNraise(ec, piY, fieldN);
+            ptOut  = eciAdd(ec, ptOut, [piX, piY], false);
         }
     }
 
@@ -724,17 +725,17 @@ export function eciFrobeniusTr(
 // Compute the anti-trace map Tr(P)
 // aTr: P -> P’ = [k]P – Tr(P) 
 export function eciAntiFrobeniusTr(
-                        fieldN: number, 
-                        coeffA: number,
+                        ec: ECurve,
                         powk: number, 
                         ptP: number[][],
                         verbose: boolean = false): number[][] {
 
-    let kp = eciMultiply(fieldN, coeffA, powk, ptP);                // [k]P
-    let trace = eciFrobeniusTr(fieldN, coeffA, powk, ptP, false)    // Tr(P)
-    trace = eciInverse(fieldN, trace);                              //-Tr(P)
+    unpackEC(ec, ReqEC.NA);
+    let kp = eciMultiply(ec, powk, ptP);                // [k]P
+    let trace = eciFrobeniusTr(ec, powk, ptP, false)    // Tr(P)
+    trace = eciInverse(ec, trace);                      //-Tr(P)
 
-    let ptOut  = eciAdd(fieldN, coeffA, kp, trace);                 // [k]P - Tr(P)
+    let ptOut  = eciAdd(ec, kp, trace);                 // [k]P - Tr(P)
     if (verbose) 
         console.log(`${strCompPt(ptP)} -> ${strCompPt(ptOut)}`);
 
@@ -747,19 +748,19 @@ export function eciAntiFrobeniusTr(
 //                  Base-Field Subgroup
 //
 // let itoys = require('./build/i-toys.js')
-// let torPts = itoys.eciEr(11, 0, 4, 3, [[0,0],[9,0]], [[7,2],[0,1]])
-// itoys.eciFrobeniusTrMap(11, 0, 2, torPts, true)
+// let torPts = itoys.eciEr({fieldN: 11, coeffA: 0, coeffB: 4, rorder: 3}, [[0,0],[9,0]], [[7,2],[0,1]])
+// let baseField = itoys.eciFrobeniusTrMap( {fieldN: 11, coeffA: 0}, 2, torPts, true)
 export function eciFrobeniusTrMap(
-                            fieldN: number, 
-                            coeffA: number,
+                            ec: ECurve,
                             powk: number, 
                             torPts: number[][][],
                             verbose: boolean = false): number[][][] {
 
+    unpackEC(ec, ReqEC.NA);
     let torOut: number[][][] = [];
 
     torPts.forEach((pt) => {
-        let ptOut  = eciFrobeniusTr(fieldN, coeffA, powk, pt, verbose);
+        let ptOut  = eciFrobeniusTr(ec, powk, pt, verbose);
 
         //Add if not already added
         let idx = torOut.findIndex((pt2) => compPointsEquals(ptOut,pt2));
@@ -774,19 +775,19 @@ export function eciFrobeniusTrMap(
 //                  Trace Zero Subgroup
 //
 // let itoys = require('./build/i-toys.js')
-// let torPts = itoys.eciEr(11, 0, 4, 3, [[0,0],[9,0]], [[7,2],[0,1]])
-// itoys.eciAntiFrobeniusTrMap(11, 0, 2, torPts, true)
+// let torPts = itoys.eciEr({fieldN: 11, coeffA: 0, coeffB: 4, rorder: 3}, [[0,0],[9,0]], [[7,2],[0,1]])
+// let traceZero = itoys.eciAntiFrobeniusTrMap({fieldN: 11, coeffA: 0}, 2, torPts, true)
 export function eciAntiFrobeniusTrMap(
-                            fieldN: number, 
-                            coeffA: number,
+                            ec: ECurve,
                             powk: number, 
                             torPts: number[][][],
                             verbose: boolean = false): number[][][] {
 
+    unpackEC(ec, ReqEC.NA);
     let torOut: number[][][] = [];
 
     torPts.forEach((pt) => {
-        let ptOut  = eciAntiFrobeniusTr(fieldN, coeffA, powk, pt, verbose);
+        let ptOut  = eciAntiFrobeniusTr(ec, powk, pt, verbose);
 
         //Add if not already added
         let idx = torOut.findIndex((pt2) => compPointsEquals(ptOut,pt2));
@@ -801,10 +802,9 @@ export function eciAntiFrobeniusTrMap(
 // For prime q and r, k is the smallest positive integer that 
 // satisfies:       
 //      r | (q^k - 1)   =>    (q^k - 1) % r = 0
-export function eciEmbeddingDegree(
-                        fieldN: number,     // q
-                        rorder: number,     // r
-                        verbose: boolean = false) {
+export function eciEmbeddingDegree(ec: ECurve,verbose: boolean = false) {
+    
+    let {fieldN, rorder} = unpackEC(ec, ReqEC.NABR);
     let powk = 1;
 
     if (!TOYS.isPrime(fieldN))

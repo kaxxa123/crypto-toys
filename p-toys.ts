@@ -1,9 +1,12 @@
+import {ECurve, unpackEC, ReqEC} from './config'
 import {pointsEquals} from "./toys"
 
-import {compmod, compadd, compsub, compmul, compNdiv, 
+import {compmod, compadd, compsub, compmul, compmulEx, compNdiv, 
         compPointsEquals, strCompPt, strComplex,
         ecipoints, ecihasPoint, eciAdd, eci2P } from "./i-toys"
 
+// ---------------------------------------------------------------------------------------------
+//
 // Functions to compute EC point addition using projective coordinates
 // The mapping to/from projective space is
 //  (x, y)    -> (xZ, yZ, Z)
@@ -12,27 +15,25 @@ import {compmod, compadd, compsub, compmul, compNdiv,
 // References:
 //  https://en.wikibooks.org/wiki/Cryptography/Prime_Curve/Standard_Projective_Coordinates
 //  https://www.nayuki.io/page/elliptic-curve-point-addition-in-projective-coordinates
+//
+// ---------------------------------------------------------------------------------------------
 
 // Compute 2P in projective space  (X: Y: Z)
-export function proj2PXYZ(
-                fieldN: number, 
-                coeffA: number, 
-                xyzP: number[][]): number[][] {
-                    
+export function proj2PXYZ(ec: ECurve, xyzP: number[][]): number[][] {
+             
+    let {fieldN, coeffA, iSQR} = unpackEC(ec, ReqEC.NA);    
     if (pointsEquals(xyzP[1], [0,0])) 
         return [[0,0], [1,0], [0,0]];
 
-    let tempW = compadd(compmul([coeffA,0], compmul(xyzP[2], xyzP[2])),
-                        compmul([3,0],      compmul(xyzP[0], xyzP[0])))
-    let tempS = compmul(xyzP[1],xyzP[2])
-    let tempB = compmul(xyzP[0],compmul(xyzP[1],tempS))
-    let tempH = compsub(compmul(tempW,tempW),compmul([8,0],tempB))
-    let tempS_SQR = compmul(tempS, tempS)
+    let tempW = compadd(compmulEx([[coeffA,0], xyzP[2], xyzP[2]], iSQR), compmulEx([[3,0], xyzP[0], xyzP[0]], iSQR))
+    let tempS = compmul(xyzP[1],xyzP[2], iSQR)
+    let tempB = compmulEx([xyzP[0], xyzP[1], tempS], iSQR)
+    let tempH = compsub(compmul(tempW,tempW, iSQR),compmul([8,0],tempB, iSQR))
+    let tempS_SQR = compmul(tempS, tempS, iSQR)
 
-    let outX = compmul([2,0],compmul(tempH,tempS))
-    let outY = compsub(compmul(tempW,compsub(compmul([4,0],tempB),tempH)),
-                       compmul([8,0],compmul(compmul(xyzP[1], xyzP[1]),tempS_SQR)))
-    let outZ = compmul(compmul([8,0], tempS),tempS_SQR)
+    let outX = compmulEx([[2,0],tempH,tempS], iSQR)
+    let outY = compsub(compmul(tempW, compsub(compmul([4,0],tempB, iSQR),tempH), iSQR), compmulEx([[8,0], xyzP[1], xyzP[1], tempS_SQR], iSQR))
+    let outZ = compmulEx([[8,0], tempS, tempS_SQR], iSQR)
 
     return [compmod(outX, fieldN), 
             compmod(outY, fieldN), 
@@ -40,33 +41,30 @@ export function proj2PXYZ(
 }
 
 // Compute P+Q in projective space (X: Y: Z)
-export function projPplusQXYZ(
-                fieldN: number, 
-                coeffA: number, 
-                xyzP: number[][],
-                xyzQ: number[][]): number[][] {
+export function projPplusQXYZ(ec: ECurve, xyzP: number[][], xyzQ: number[][]): number[][] {
 
-    let tempU1 = compmul(xyzQ[1], xyzP[2])
-    let tempU2 = compmul(xyzP[1], xyzQ[2])
-    let tempV1 = compmul(xyzQ[0], xyzP[2])
-    let tempV2 = compmul(xyzP[0], xyzQ[2])
+    let {fieldN, iSQR} = unpackEC(ec, ReqEC.NA);    
+    let tempU1 = compmul(xyzQ[1], xyzP[2], iSQR)
+    let tempU2 = compmul(xyzP[1], xyzQ[2], iSQR)
+    let tempV1 = compmul(xyzQ[0], xyzP[2], iSQR)
+    let tempV2 = compmul(xyzP[0], xyzQ[2], iSQR)
     
     if (pointsEquals(tempV1, tempV2)) {
         if (!pointsEquals(tempU1, tempU2))
                 return [[0,0], [1,0], [0,0]];
-        else    return proj2PXYZ(fieldN, coeffA, xyzP) 
+        else    return proj2PXYZ(ec, xyzP) 
     }
 
     let tempU = compsub(tempU1, tempU2)
     let tempV = compsub(tempV1, tempV2)
-    let tempV_SQR = compmul(tempV, tempV)
-    let tempV_CUB = compmul(tempV_SQR, tempV)
-    let tempW = compmul(xyzP[2], xyzQ[2])
-    let tempA = compsub(compmul(compmul(tempU, tempU),tempW), compadd(tempV_CUB, compmul([2,0], compmul(tempV_SQR, tempV2))))
+    let tempV_SQR = compmul(tempV, tempV, iSQR)
+    let tempV_CUB = compmul(tempV_SQR, tempV, iSQR)
+    let tempW = compmul(xyzP[2], xyzQ[2], iSQR)
+    let tempA = compsub(compmulEx([tempU, tempU, tempW], iSQR), compadd(tempV_CUB, compmulEx([[2,0], tempV_SQR, tempV2], iSQR)))
 
-    let outX = compmul(tempV, tempA)
-    let outY = compsub(compmul(tempU,compsub(compmul(tempV_SQR, tempV2),tempA)), compmul(tempV_CUB, tempU2))
-    let outZ = compmul(tempV_CUB,tempW)
+    let outX = compmul(tempV, tempA, iSQR)
+    let outY = compsub(compmul(tempU,compsub(compmul(tempV_SQR, tempV2, iSQR),tempA), iSQR), compmul(tempV_CUB, tempU2, iSQR))
+    let outZ = compmul(tempV_CUB,tempW, iSQR)
 
     return [compmod(outX, fieldN), 
             compmod(outY, fieldN), 
@@ -74,16 +72,11 @@ export function projPplusQXYZ(
 }
 
 // Compute 2P mapping in/out of projective space
-export function proj2P(
-                fieldN: number, 
-                coeffA: number, 
-                ptP: number[][],
-                verbose: boolean = false): number[][] {
+export function proj2P(ec: ECurve, ptP: number[][], verbose: boolean = false): number[][] {
 
-    let compute2P = (   fieldN: number, 
-                        coeffA: number, 
-                        ptP: number[][],
-                        verbose: boolean = false): number[][] => { 
+    unpackEC(ec, ReqEC.NA);    
+    let compute2P = (ptP: number[][], verbose: boolean = false): number[][] => { 
+
         //0 + 0 = 0
         if (compPointsEquals(ptP, [[0]]))
             return [[0]];
@@ -92,18 +85,18 @@ export function proj2P(
         if (pointsEquals(ptP[1],[0,0]))
             return [[0]];
 
-        let XYZ = proj2PXYZ(fieldN, coeffA, [ptP[0], ptP[1], [1,0]])
+        let XYZ = proj2PXYZ(ec, [ptP[0], ptP[1], [1,0]])
 
         if (verbose)
             console.log(`2P = 2*(${strComplex(ptP[0])},${strComplex(ptP[1])},${strComplex([1,0])}) = ` +
                                `(${strComplex(XYZ[0])},${strComplex(XYZ[1])},${strComplex(XYZ[2])})`);
         
-        let xx = compNdiv(fieldN, XYZ[0], XYZ[2])
-        let yy = compNdiv(fieldN, XYZ[1], XYZ[2])
+        let xx = compNdiv(ec, XYZ[0], XYZ[2])
+        let yy = compNdiv(ec, XYZ[1], XYZ[2])
         return [xx,yy]
     }
 
-    let pt2P = compute2P(fieldN, coeffA, ptP, verbose);
+    let pt2P = compute2P(ptP, verbose);
 
     if (verbose) 
         console.log(`2P = 2*${strCompPt(ptP)} = ${strCompPt(pt2P)}`);
@@ -113,15 +106,13 @@ export function proj2P(
 
 // Compute P+Q/2P mapping in/out of projective space
 export function projAdd(
-                fieldN: number, 
-                coeffA: number, 
+                ec: ECurve, 
                 ptP: number[][], 
                 ptQ: number[][], 
                 verbose: boolean = false): number[][] {
 
-    let computeAdd = (  fieldN: number, 
-                        coeffA: number, 
-                        ptP: number[][], 
+    unpackEC(ec, ReqEC.NA);    
+    let computeAdd = (  ptP: number[][], 
                         ptQ: number[][],
                         verbose: boolean = false): number[][]  => {
 
@@ -140,34 +131,26 @@ export function projAdd(
 
         let XYZ = []
         if (compPointsEquals(ptP, ptQ))         
-                XYZ = proj2PXYZ(
-                        fieldN, 
-                        coeffA,  
-                        [ptP[0], ptP[1], [1,0]]);
+                XYZ = proj2PXYZ(ec, [ptP[0], ptP[1], [1,0]]);
 
-        else    XYZ = projPplusQXYZ(
-                        fieldN, 
-                        coeffA, 
-                        [ptP[0], ptP[1], [1,0]], 
-                        [ptQ[0], ptQ[1], [1,0]]);
+        else    XYZ = projPplusQXYZ(ec, [ptP[0], ptP[1], [1,0]], [ptQ[0], ptQ[1], [1,0]]);
 
         if (verbose)
             console.log(`P+Q = (${strComplex(ptP[0])},${strComplex(ptP[1])},${strComplex([1,0])}) + ` +
                               `(${strComplex(ptQ[0])},${strComplex(ptQ[1])},${strComplex([1,0])}) = ` +
                               `(${strComplex(XYZ[0])},${strComplex(XYZ[1])},${strComplex(XYZ[2])})`);
 
-        let xx = compNdiv(fieldN, XYZ[0], XYZ[2])
-        let yy = compNdiv(fieldN, XYZ[1], XYZ[2])
+        let xx = compNdiv(ec, XYZ[0], XYZ[2])
+        let yy = compNdiv(ec, XYZ[1], XYZ[2])
         return [xx,yy]
     }
 
-    let ptPQ = computeAdd(fieldN, coeffA, ptP, ptQ, verbose);
+    let ptPQ = computeAdd(ptP, ptQ, verbose);
     if (verbose) 
         console.log(`P+Q = ${strCompPt(ptP)} + ${strCompPt(ptQ)} = ${strCompPt(ptPQ)}`);
 
     return ptPQ;
 }
-
 
 // TEST CODE
 // Compute P + Q = R for any P and Q...
@@ -175,17 +158,12 @@ export function projAdd(
 // ...confirm that the result is the same.
 //
 // let ptoys = require('./build/p-toys.js')
-// ptoys.projTestPplusQ(11, 4, 3, true)
-//
-// ptoys.projTestPplusQ(13, 4, 3, true)
-//
-export function projTestPplusQ(
-    fieldN: number, 
-    coeffA: number, 
-    coeffB: number, 
-    verbose: boolean = false): boolean {
+// ptoys.projTestPplusQ({fieldN: 11, coeffA: 4, coeffB: 3}, true)
+// ptoys.projTestPplusQ({fieldN: 13, coeffA: 4, coeffB: 3}, true)
+export function projTestPplusQ(ec: ECurve, verbose: boolean = false): boolean {
 
-    let pts = ecipoints(fieldN, coeffA, coeffB, false);
+    unpackEC(ec, ReqEC.NAB);    
+    let pts = ecipoints(ec, false);
 
     let confirms: number = 0;
     let notComputed: number = 0;
@@ -199,7 +177,7 @@ export function projTestPplusQ(
             let errMsg: string = "";
 
             try {
-                ptPP = projAdd(fieldN, coeffA, pts[icntP], pts[icntQ], verbose) 
+                ptPP = projAdd(ec, pts[icntP], pts[icntQ], verbose) 
             }
             catch (err) {
                 //Using odd prime numbers allous us to know which of the functions failed.
@@ -208,7 +186,7 @@ export function projTestPplusQ(
             }
 
             try {
-                ptXY = eciAdd(fieldN, coeffA, pts[icntP], pts[icntQ], verbose)
+                ptXY = eciAdd(ec, pts[icntP], pts[icntQ], verbose)
             }
             catch (err) {
                 //Using odd prime numbers allous us to know which of the functions failed.
@@ -268,18 +246,12 @@ export function projTestPplusQ(
 // ...confirm that the result is the same.
 //
 // let ptoys = require('./build/p-toys.js')
-// ptoys.projTest2P(11, 4, 3, true)
-//
-// ptoys.projTest2P(13, 4, 3, true)
-//
-export function projTest2P(
-    fieldN: number, 
-    coeffA: number, 
-    coeffB: number, 
-    verbose: boolean = false): boolean {
+// ptoys.projTest2P({fieldN: 11, coeffA: 4, coeffB: 3}, true)
+// ptoys.projTest2P({fieldN: 13, coeffA: 4, coeffB: 3}, true)
+export function projTest2P(ec: ECurve, verbose: boolean = false): boolean {
 
-    let pts = ecipoints(fieldN, coeffA, coeffB, false);
-
+    unpackEC(ec, ReqEC.NAB);    
+    let pts = ecipoints(ec, false);
     let confirms: number = 0;
     let notComputed: number = 0;
 
@@ -291,7 +263,7 @@ export function projTest2P(
         let errMsg: string = "";
 
         try {
-            ptPP = proj2P(fieldN, coeffA, pts[icntP], verbose) 
+            ptPP = proj2P(ec, pts[icntP], verbose) 
         }
         catch (err) {
             //Using odd prime numbers allous us to know which of the functions failed.
@@ -300,7 +272,7 @@ export function projTest2P(
         }
 
         try {
-            ptXY = eci2P(fieldN, coeffA, pts[icntP], verbose)
+            ptXY = eci2P(ec, pts[icntP], verbose)
         }
         catch (err) {
             //Using odd prime numbers allous us to know which of the functions failed.

@@ -1,3 +1,4 @@
+import {ECurve, unpackEC, ReqEC} from './config'
 
 // compute a % b where a can be negative.
 // however the result is always positive.
@@ -233,11 +234,10 @@ export function pointsEquals(ptA: number[], ptB: number[]): boolean {
 // Lookup for points on an EC: y**2  % n = (x**3 + A*x + B) % n
 // ...by trying out all combinations
 export function ecpoints(
-                fieldN: number, 
-                coeffA: number, 
-                coeffB: number, 
+                ec: ECurve, 
                 verbose: boolean = false): number[][] {
     let out = [[0]];
+    let {fieldN, coeffA, coeffB} = unpackEC(ec, ReqEC.NAB);
 
     //Zero/Point at Infinity is always present
     if (verbose) 
@@ -277,12 +277,14 @@ export function ecpoints(
 //
 // WARNING: function does not verify that the supplied point is actually on the curve!
 export function ec2P(
-                fieldN: number, 
-                coeffA: number, 
+                ec: ECurve, 
                 ptP: number[], 
                 verbose: boolean = false): number[] {
 
-    let compute2P = (fieldN: number, coeffA: number, ptP: number[]): number[] => {
+    let {fieldN, coeffA} = unpackEC(ec, ReqEC.NA);
+    
+    let compute2P = (ptP: number[]): number[] => {
+
         //0 + 0 = 0
         if (pointsEquals(ptP, [0]))
             return [0];
@@ -298,7 +300,7 @@ export function ec2P(
         return [x2,y2];
     }
     
-    let pt2P = compute2P(fieldN, coeffA, ptP);
+    let pt2P = compute2P(ptP);
 
     if (verbose) 
         console.log(`2P = (${ptP}) + (${ptP}) = (${pt2P})`);
@@ -314,10 +316,12 @@ export function ec2P(
 // WARNING: function does not verify that the supplied point is actually on the curve!
 // WARNING: function does not support doubling the same point!
 export function ecPplusQ(
-                    fieldN: number,
+                    ec: ECurve,
                     ptP: number[],
                     ptQ: number[], 
                     verbose: boolean = false): number[] {
+
+    let {fieldN} = unpackEC(ec, ReqEC.N);
 
     let computePplusQ = (fieldN: number, 
                         ptP: number[], 
@@ -355,23 +359,21 @@ export function ecPplusQ(
 //
 // WARNING: function does not verify that the supplied point is actually on the curve!
 export function ecAdd(
-                    fieldN: number, 
-                    coeffA: number, 
+                    ec: ECurve, 
                     ptP: number[], 
                     ptQ: number[], 
                     verbose: boolean = false): number[] {
 
-    let computeAdd = (  fieldN: number, 
-                        coeffA: number, 
-                        ptP: number[], 
-                        ptQ: number[]): number[]  => {
+    unpackEC(ec, ReqEC.NA);
+
+    let computeAdd = (ptP: number[], ptQ: number[]): number[]  => {
         if (pointsEquals(ptP, [0]))    return ptQ;
         if (pointsEquals(ptQ, [0]))    return ptP;
-        if (pointsEquals(ptP, ptQ))    return ec2P(fieldN, coeffA, ptP, false);
-        return ecPplusQ(fieldN, ptP, ptQ, false);
+        if (pointsEquals(ptP, ptQ))    return ec2P(ec, ptP, false);
+        return ecPplusQ(ec, ptP, ptQ, false);
     }
 
-    let ptPQ = computeAdd(fieldN, coeffA, ptP, ptQ);
+    let ptPQ = computeAdd(ptP, ptQ);
 
     if (verbose) 
         console.log(`P+Q = (${ptP}) + (${ptQ}) = (${ptPQ})`);
@@ -382,26 +384,28 @@ export function ecAdd(
 // Compute m*P over an EC: y**2  % n = (x**3 + A*x + B) % n
 // WARNING: function does not verify that the supplied point is actually on the curve!
 export function ecMultiply(
-                    fieldN: number, 
-                    coeffA: number, 
+                    ec: ECurve, 
                     multiplier: number, 
                     ptP: number[], 
                     verbose: boolean = false): number[] {
-    return sqrAndMult([0], ptP, multiplier, (ptA: number[], ptB: number[]): number[] => ecAdd(fieldN, coeffA, ptA, ptB, verbose));
+    unpackEC(ec, ReqEC.NA);
+    return sqrAndMult([0], ptP, multiplier, (ptA: number[], ptB: number[]): number[] => ecAdd(ec, ptA, ptB, verbose));
 }
 
 // Compute -P over an EC: y**2  % n = (x**3 + A*x + B) % n
 // WARNING: function does not verify that the supplied point is actually on the curve!
-export function ecInverse(fieldN: number, ptP: number[], verbose: boolean = false): number[] {
+export function ecInverse(ec: ECurve, ptP: number[], verbose: boolean = false): number[] {
 
-    let invertP = (fieldN: number, ptP: number[]): number[]  => {
+    unpackEC(ec, ReqEC.N);
+    let invertP = (ec: ECurve, ptP: number[]): number[]  => {
+        let {fieldN} = unpackEC(ec, ReqEC.N);
         if (pointsEquals(ptP, [0]))    
             return ptP;
             
         return [ptP[0], posmod(-1*posmod(ptP[1], fieldN), fieldN)];
     }
 
-    let minusP = invertP(fieldN, ptP)
+    let minusP = invertP(ec, ptP)
 
     if (verbose) 
         console.log(`-P = (${minusP})`);
@@ -412,14 +416,14 @@ export function ecInverse(fieldN: number, ptP: number[], verbose: boolean = fals
 // Given an initial point P, compute 2P, 3P, 4P until the cycle is closed.
 // A point that cycles through ALL group elements is a generator.
 export function ecCycle(
-                    fieldN: number, 
-                    coeffA: number, 
-                    coeffB: number, 
+                    ec: ECurve, 
                     ptP: number[], 
                     verbose: boolean = false): number[][] {
 
+    let {fieldN} = unpackEC(ec, ReqEC.NAB);
+
     //Get list of all points on this curve
-    let allPoints = ecpoints(fieldN, coeffA, coeffB, false);
+    let allPoints = ecpoints(ec, false);
     if (allPoints.findIndex((pt2) => pointsEquals(ptP,pt2)) == -1)
         throw `Failed: Input point is not within E/F${fieldN}`
 
@@ -427,7 +431,7 @@ export function ecCycle(
     if (verbose) 
         console.log(`P = (${ptP})`);
     
-    let ptNew = ecAdd(fieldN, coeffA, ptP, ptP, false);
+    let ptNew = ecAdd(ec, ptP, ptP, false);
     while (!pointsEquals(ptNew, ptP))
     {  
         if (cycle.length > allPoints.length)
@@ -440,7 +444,7 @@ export function ecCycle(
         if (verbose) 
             console.log(`${cycle.length}P = (${ptNew})`);
 
-        ptNew = ecAdd(fieldN, coeffA, ptP,ptNew, false);
+        ptNew = ecAdd(ec, ptP,ptNew, false);
     }
 
     if (verbose)
@@ -450,13 +454,10 @@ export function ecCycle(
 }
 
 // For each EC point compute its cycle
-export function ecAllCycles(
-                    fieldN: number, 
-                    coeffA: number, 
-                    coeffB: number, 
-                    verbose: boolean = false): number[][][] {
+export function ecAllCycles(ec: ECurve, verbose: boolean = false): number[][][] {
 
-    let points = ecpoints(fieldN, coeffA, coeffB, false);
+    unpackEC(ec, ReqEC.NAB);
+    let points = ecpoints(ec, false);
     let allcycles = [];
 
     for (let cnt = 0; cnt < points.length; ++cnt) {
@@ -465,7 +466,7 @@ export function ecAllCycles(
         if (points[cnt].length == 1) 
             continue;
 
-        let onecycle = ecCycle(fieldN, coeffA, coeffB, points[cnt], false);
+        let onecycle = ecCycle(ec, points[cnt], false);
         allcycles.push(onecycle);
 
         if (verbose)
@@ -520,13 +521,10 @@ export function compareSets(
 }
 
 // For each EC point compute its cycle, filtering out duplicates.
-export function ecUniqueCycles(
-                    fieldN: number, 
-                    coeffA: number, 
-                    coeffB: number, 
-                    verbose: boolean = false): number[][][] {
+export function ecUniqueCycles(ec: ECurve, verbose: boolean = false): number[][][] {
 
-    let cycAll = ecAllCycles(fieldN,coeffA,coeffB);
+    unpackEC(ec, ReqEC.NAB);
+    let cycAll = ecAllCycles(ec);
     let cycOut = [cycAll[0]];
     let cycIdx = [0];
 
@@ -557,17 +555,17 @@ export function ecUniqueCycles(
 
 // Compute Cn X Cm by applying the additive operation defined for EC points
 export function ecCxC(
-                    fieldN: number, 
-                    coeffA: number, 
+                    ec: ECurve, 
                     c1: number[][], 
                     c2: number[][],
                     verbose: boolean = false): number[][] {
 
+    unpackEC(ec, ReqEC.NA);
     let c1xc2: number[][] = [];
 
     c1.forEach((pt1) => {
         c2.forEach((pt2) => {
-            c1xc2.push(ecAdd(fieldN, coeffA, pt1, pt2, false));
+            c1xc2.push(ecAdd(ec, pt1, pt2, false));
         });
     });
 
@@ -581,14 +579,13 @@ export function ecCxC(
 // Here the caller for Cn and Cm simply passes the cyclic group index for
 // the groups returned by ecUniqueCycles.
 export function ecCnxCm(
-    fieldN: number, 
-    coeffA: number, 
-    coeffB: number, 
-    cn: number, 
-    cm: number,
-    verbose: boolean = false): number[][] {
+                    ec: ECurve, 
+                    cn: number, 
+                    cm: number,
+                    verbose: boolean = false): number[][] {
 
-    let cycles = ecUniqueCycles(fieldN, coeffA, coeffB)
+    unpackEC(ec, ReqEC.NAB);
+    let cycles = ecUniqueCycles(ec)
 
     if (cycles.length <= cn)
         throw `Invalid sub-group index ${cn}`
@@ -596,7 +593,7 @@ export function ecCnxCm(
     if (cycles.length <= cm)
         throw `Invalid sub-group index ${cm}`
 
-    let c1xc2 = ecCxC(fieldN, coeffA, cycles[cn], cycles[cm], verbose);
+    let c1xc2 = ecCxC(ec, cycles[cn], cycles[cm], verbose);
 
     return c1xc2;
 }
@@ -604,23 +601,19 @@ export function ecCnxCm(
 // Find all the r-torsion points for the given curve.
 // "...a point is “killed” (sent to O) when multiplied by its order"
 // Pairings for beginners - Craig Costello
-export function ecTorsion(
-                    fieldN: number, 
-                    coeffA: number, 
-                    coeffB: number, 
-                    rorder: number, 
-                    verbose: boolean = false): number[][] {
+export function ecTorsion(ec: ECurve, verbose: boolean = false): number[][] {
 
+    let {rorder} = unpackEC(ec, ReqEC.NABR);
     let ptsR: number[][] = [];
     
-    let pts = ecpoints(fieldN,coeffA,coeffB, false);
+    let pts = ecpoints(ec, false);
     if (pts.length % rorder != 0)
         throw `r (${rorder}) is not a factor of #E (${pts.length})`
 
     // A point Q that is in the r-torsion will satisfy this relation:
     // rQ = 0
     for (let cnt = 0; cnt < pts.length; ++cnt) {
-        let rQ = ecMultiply(fieldN, coeffA, rorder, pts[cnt], false);
+        let rQ = ecMultiply(ec, rorder, pts[cnt], false);
         
         if (pointsEquals(rQ, [0]))
             ptsR.push(pts[cnt]);
