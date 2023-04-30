@@ -56,7 +56,7 @@ R = [[40,0], [54,0]]
 S = [[48,55], [28,51]]
 
 //Pairing computation
-pair.weilPairing(ec2, P, Q, R, S, true)
+pair.weilPairing(ec, P, Q, R, S, true)
 
 //Expected Result: 46 + 56i
 ```
