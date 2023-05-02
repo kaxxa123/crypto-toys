@@ -1,10 +1,17 @@
 import * as TOYS from "./toys"
 import * as ITOYS from "./i-toys"
+import * as PAIR from "./pairings"
 import * as yargs from 'yargs'
 
 yargs.version("1.1.0")
 
 //Define common yargs parameters that are used in multiple commands
+const valueOption: yargs.Options = {
+    describe: "computation input value",
+    demandOption: true,
+    type: "number"
+}
+
 const fieldNOption: yargs.Options = {
     describe: "N defining the (mod N) arithmetic",
     demandOption: true,
@@ -53,15 +60,36 @@ const comp_bOption: yargs.Options = {
     type: "number"
 }
 
+const rorderOption: yargs.Options = {
+    describe: "r-torsion order",
+    demandOption: true,
+    type: "number"
+}
+
+const isqrOption: yargs.Options = {
+    describe: "extension field i^2 value",
+    demandOption: false,
+    type: "number",
+    default: -1
+}
+
+yargs.command({
+    command: "isPrime",
+    describe: "Check if value is a prime number",
+    builder: {
+        value: valueOption
+    },
+    handler: function (argv: any) {
+        let res = TOYS.isPrime(argv.value) ? "IS" : "IS NOT"
+        console.log(`${argv.value} ${res} prime`)
+    }
+});
+
 yargs.command({
     command: "isGenerator",
     describe: "Check if alpha is a generator for group over fieldN",
     builder: {
-        alpha: {
-            describe: "generator",
-            demandOption: true,
-            type: "number"
-        },
+        alpha: valueOption,
         fieldN: fieldNOption
     },
     handler: function (argv: any) {
@@ -84,16 +112,8 @@ yargs.command({
     command: "gcd",
     describe: "Get Greatest Common Divisor: gcd(aValue,bValue)",
     builder: {
-        aValue: {
-            describe: "value a",
-            demandOption: true,
-            type: "number"
-        },
-        bValue: {
-            describe: "value b",
-            demandOption: true,
-            type: "number"
-        }
+        aValue: valueOption,
+        bValue: valueOption
     },
     handler: function (argv: any) {
         console.log(`gcd(${argv.aValue}, ${argv.bValue}) = ${TOYS.gcd(argv.aValue, argv.bValue)}`)
@@ -104,11 +124,7 @@ yargs.command({
     command: "inverse",
     describe: "Get inverse for value (mod fieldN)",
     builder: {
-        value: {
-            describe: "value to be inverted",
-            demandOption: true,
-            type: "number"
-        },
+        value: valueOption,
         fieldN: fieldNOption
     },
     handler: function (argv: any) {
@@ -170,26 +186,10 @@ yargs.command({
     builder: {
         fieldN: fieldNOption,
         coeffA: coeffAOption,
-        xPpt: {
-            describe: "point P x coordinate",
-            demandOption: true,
-            type: "number"
-        },
-        yPpt: {
-            describe: "point P y coordinate",
-            demandOption: true,
-            type: "number"
-        },
-        xQpt: {
-            describe: "point Q x coordinate",
-            demandOption: true,
-            type: "number"
-        },
-        yQpt: {
-            describe: "point Q y coordinate",
-            demandOption: true,
-            type: "number"
-        }        
+        xPpt: xptOption,
+        yPpt: yptOption,
+        xQpt: xptOption,
+        yQpt: yptOption
     },
     handler: function (argv: any) {
         TOYS.ecAdd({
@@ -315,11 +315,7 @@ yargs.command({
         fieldN: fieldNOption,
         coeffA: coeffAOption,
         coeffB: coeffBOption,
-        rorder: {
-            describe: "#E factor whose points are to be found",
-            demandOption: true,
-            type: "number"
-        }
+        rorder: rorderOption
     },
     handler: function (argv: any) {
         const cycle = TOYS.ecTorsion({
@@ -339,12 +335,14 @@ yargs.command({
         fieldN: fieldNOption,
         coeffA: coeffAOption,
         coeffB: coeffBOption,
+        isqr: isqrOption
     },
     handler: function (argv: any) {
         let pts = ITOYS.ecipoints({
                             fieldN: argv.fieldN, 
                             coeffA: argv.coeffA, 
-                            coeffB: argv.coeffB}, false)   
+                            coeffB: argv.coeffB,
+                            iSQR:   argv.isqr}, false)   
 
         ITOYS.eciShowPoints(pts)
         console.log()
@@ -362,11 +360,13 @@ yargs.command({
         xPpt_imag: comp_bOption,
         yPpt_real: comp_aOption,
         yPpt_imag: comp_bOption,
+        isqr: isqrOption,
     },
     handler: function (argv: any) {
         ITOYS.eci2P({
                 fieldN: argv.fieldN, 
-                coeffA: argv.coeffA}, 
+                coeffA: argv.coeffA,
+                iSQR:   argv.isqr}, 
                 [[argv.xPpt_real,argv.xPpt_imag],[argv.yPpt_real, argv.yPpt_imag]], true)   
     }
 });
@@ -385,11 +385,13 @@ yargs.command({
         xQpt_imag: comp_bOption,
         yQpt_real: comp_aOption,
         yQpt_imag: comp_bOption,
+        isqr: isqrOption,
     },
     handler: function (argv: any) {
         ITOYS.eciAdd({
                 fieldN: argv.fieldN, 
-                coeffA: argv.coeffA}, 
+                coeffA: argv.coeffA,
+                iSQR:   argv.isqr}, 
                 [[argv.xPpt_real,argv.xPpt_imag],[argv.yPpt_real, argv.yPpt_imag]], 
                 [[argv.xQpt_real,argv.xQpt_imag],[argv.yQpt_real, argv.yQpt_imag]], true)   
     }
@@ -405,12 +407,14 @@ yargs.command({
         xPpt_imag: comp_bOption,
         yPpt_real: comp_aOption,
         yPpt_imag: comp_bOption,
-        multiplier: multiplierOption
+        multiplier: multiplierOption,
+        isqr: isqrOption,
     },
     handler: function (argv: any) {
         ITOYS.eciMultiply({
                 fieldN: argv.fieldN, 
-                coeffA: argv.coeffA}, 
+                coeffA: argv.coeffA,
+                iSQR:   argv.isqr}, 
                 argv.multiplier, 
                 [[argv.xPpt_real,argv.xPpt_imag],[argv.yPpt_real, argv.yPpt_imag]], true)   
     }
@@ -425,10 +429,11 @@ yargs.command({
         xPpt_imag: comp_bOption,
         yPpt_real: comp_aOption,
         yPpt_imag: comp_bOption,
+        isqr: isqrOption,
     },
     handler: function (argv: any) {
         ITOYS.eciInverse(
-                    {fieldN: argv.fieldN}, 
+                    {fieldN: argv.fieldN, iSQR: argv.isqr}, 
                     [[argv.xPpt_real,argv.xPpt_imag],[argv.yPpt_real, argv.yPpt_imag]], true)   
     }
 });
@@ -444,12 +449,14 @@ yargs.command({
         xPpt_imag: comp_bOption,
         yPpt_real: comp_aOption,
         yPpt_imag: comp_bOption,
+        isqr: isqrOption,
     },
     handler: function (argv: any) {
         const cycle = ITOYS.eciCycle({
                                 fieldN: argv.fieldN, 
                                 coeffA: argv.coeffA, 
-                                coeffB: argv.coeffB}, 
+                                coeffB: argv.coeffB,
+                                iSQR:   argv.isqr}, 
                                 [[argv.xPpt_real,argv.xPpt_imag],[argv.yPpt_real, argv.yPpt_imag]], false)
         ITOYS.eciShowCycles([cycle])
     }
@@ -462,12 +469,14 @@ yargs.command({
         fieldN: fieldNOption,
         coeffA: coeffAOption,
         coeffB: coeffBOption,
+        isqr: isqrOption,
     },
     handler: function (argv: any) {
         const cycles = ITOYS.eciUniqueCycles({
                                 fieldN: argv.fieldN, 
                                 coeffA: argv.coeffA, 
-                                coeffB: argv.coeffB}, false)   
+                                coeffB: argv.coeffB,
+                                iSQR:   argv.isqr}, false)   
         ITOYS.eciShowCycles(cycles)
     }
 });
@@ -479,21 +488,191 @@ yargs.command({
         fieldN: fieldNOption,
         coeffA: coeffAOption,
         coeffB: coeffBOption,
-        rorder: {
-            describe: "#E factor whose points are to be found",
-            demandOption: true,
-            type: "number"
-        }
+        rorder: rorderOption,
+        isqr: isqrOption,
     },
     handler: function (argv: any) {
         const cycle = ITOYS.eciTorsion({
                                 fieldN: argv.fieldN, 
                                 coeffA: argv.coeffA, 
                                 coeffB: argv.coeffB, 
-                                rorder: argv.rorder}, false)   
+                                rorder: argv.rorder,
+                                iSQR:   argv.isqr}, false)   
         ITOYS.eciShowPoints(cycle)
     }
 });
+
+yargs.command({
+    command: "eciembeddingdegree",
+    describe: "Get the smallest embedding degree k that captures all r-torsion points",
+    builder: {
+        fieldN: fieldNOption,
+        rorder: rorderOption,
+        isqr: isqrOption,
+    },
+    handler: function (argv: any) {
+        ITOYS.eciEmbeddingDegree({
+                        fieldN: argv.fieldN, 
+                        coeffA: 0, 
+                        coeffB: 0, 
+                        rorder: argv.rorder,
+                        iSQR:   argv.isqr}, true)   
+    }
+});
+
+yargs.command({
+    command: "eciFrobenius",
+    describe: "Apply the Frobenius Trace Map to all r-torsion points",
+    builder: {
+        fieldN: fieldNOption,
+        coeffA: coeffAOption,
+        coeffB: coeffBOption,
+        rorder: rorderOption,
+        isqr: isqrOption,
+    },
+    handler: function (argv: any) {
+        const ec = {
+            fieldN: argv.fieldN, 
+            coeffA: argv.coeffA, 
+            coeffB: argv.coeffB, 
+            rorder: argv.rorder,
+            iSQR:   argv.isqr}
+
+        const torPts = ITOYS.eciTorsion(ec, false) 
+        const powk = ITOYS.eciEmbeddingDegree(ec, true)   
+        ITOYS.eciFrobeniusTrMap( ec, powk, torPts, true)            
+    }
+});
+
+yargs.command({
+    command: "eciAntiFrobenius",
+    describe: "Apply the Frobenius Anti Trace Map to all r-torsion points",
+    builder: {
+        fieldN: fieldNOption,
+        coeffA: coeffAOption,
+        coeffB: coeffBOption,
+        rorder: rorderOption,
+        isqr: isqrOption,
+    },
+    handler: function (argv: any) {
+        const ec = {
+            fieldN: argv.fieldN, 
+            coeffA: argv.coeffA, 
+            coeffB: argv.coeffB, 
+            rorder: argv.rorder,
+            iSQR:   argv.isqr}
+
+        const torPts = ITOYS.eciTorsion(ec, false) 
+        const powk = ITOYS.eciEmbeddingDegree(ec, true)   
+        ITOYS.eciAntiFrobeniusTrMap( ec, powk, torPts, true)            
+    }
+});
+
+yargs.command({
+    command: "frpParams",
+    describe: "Get sequence of lines and verticals for computing the divisor function Frp",
+    builder: {
+        fieldN: fieldNOption,
+        coeffA: coeffAOption,
+        coeffB: coeffBOption,
+        rorder: rorderOption,
+        xPpt_real: comp_aOption,
+        xPpt_imag: comp_bOption,
+        yPpt_real: comp_aOption,
+        yPpt_imag: comp_bOption,
+        isqr: isqrOption,
+    },
+    handler: function (argv: any) {
+        const ec = {
+            fieldN: argv.fieldN, 
+            coeffA: argv.coeffA, 
+            coeffB: argv.coeffB, 
+            rorder: argv.rorder,
+            iSQR:   argv.isqr}
+
+        const ptP =[[argv.xPpt_real,argv.xPpt_imag],[argv.yPpt_real, argv.yPpt_imag]]
+        PAIR.getFRPparams(ec, ptP, true)
+    }
+})
+
+yargs.command({
+    command: "weil",
+    describe: "Computing the Weil Pairing",
+    builder: {
+        fieldN: fieldNOption,
+        coeffA: coeffAOption,
+        coeffB: coeffBOption,
+        rorder: rorderOption,
+        xPpt_real: comp_aOption,
+        xPpt_imag: comp_bOption,
+        yPpt_real: comp_aOption,
+        yPpt_imag: comp_bOption,
+        xQpt_real: comp_aOption,
+        xQpt_imag: comp_bOption,
+        yQpt_real: comp_aOption,
+        yQpt_imag: comp_bOption,
+        xRpt_real: comp_aOption,
+        xRpt_imag: comp_bOption,
+        yRpt_real: comp_aOption,
+        yRpt_imag: comp_bOption,
+        xSpt_real: comp_aOption,
+        xSpt_imag: comp_bOption,
+        ySpt_real: comp_aOption,
+        ySpt_imag: comp_bOption,
+        isqr: isqrOption,
+    },
+    handler: function (argv: any) {
+        const ec = {
+            fieldN: argv.fieldN, 
+            coeffA: argv.coeffA, 
+            coeffB: argv.coeffB, 
+            rorder: argv.rorder,
+            iSQR:   argv.isqr}
+
+        const ptP = [[argv.xPpt_real,argv.xPpt_imag],[argv.yPpt_real, argv.yPpt_imag]]
+        const ptQ = [[argv.xQpt_real,argv.xQpt_imag],[argv.yQpt_real, argv.yQpt_imag]]
+        const ptR = [[argv.xRpt_real,argv.xRpt_imag],[argv.yRpt_real, argv.yRpt_imag]]
+        const ptS = [[argv.xSpt_real,argv.xSpt_imag],[argv.ySpt_real, argv.ySpt_imag]]
+        PAIR.weilPairing(ec, ptP, ptQ, ptR, ptS, true)
+    }
+})
+
+yargs.command({
+    command: "tate",
+    describe: "Computing the Tate Pairing",
+    builder: {
+        fieldN: fieldNOption,
+        coeffA: coeffAOption,
+        coeffB: coeffBOption,
+        rorder: rorderOption,
+        xPpt_real: comp_aOption,
+        xPpt_imag: comp_bOption,
+        yPpt_real: comp_aOption,
+        yPpt_imag: comp_bOption,
+        xQpt_real: comp_aOption,
+        xQpt_imag: comp_bOption,
+        yQpt_real: comp_aOption,
+        yQpt_imag: comp_bOption,
+        xRpt_real: comp_aOption,
+        xRpt_imag: comp_bOption,
+        yRpt_real: comp_aOption,
+        yRpt_imag: comp_bOption,
+        isqr: isqrOption,
+    },
+    handler: function (argv: any) {
+        const ec = {
+            fieldN: argv.fieldN, 
+            coeffA: argv.coeffA, 
+            coeffB: argv.coeffB, 
+            rorder: argv.rorder,
+            iSQR:   argv.isqr}
+
+        const ptP = [[argv.xPpt_real,argv.xPpt_imag],[argv.yPpt_real, argv.yPpt_imag]]
+        const ptQ = [[argv.xQpt_real,argv.xQpt_imag],[argv.yQpt_real, argv.yQpt_imag]]
+        const ptR = [[argv.xRpt_real,argv.xRpt_imag],[argv.yRpt_real, argv.yRpt_imag]]
+        PAIR.tatePairing(ec, ptP, ptQ, ptR, true)
+    }
+})
 
 try {
     yargs.parse();

@@ -207,7 +207,12 @@ export function fastFRP(ec: ECurve, ptP: number[][], ptQ: number[][], verbose: b
 
     let line    = ecilinePplusQ(ec, ptP, mPt, verbose);
     let solveL  = solveLine(ec, ptQ, line); 
-    return compNmul(ec, frpPrev, solveL);
+    let res =  compNmul(ec, frpPrev, solveL);
+
+    if (verbose)
+        console.log(`frp(Q) = ${strComplex(res)}`)
+
+    return res;
 }
 
 // Computing f(D) as defined for the Weil Pairing
@@ -522,5 +527,12 @@ export function tatePairing(
 
     let basic = tateBasic(ec, ptP, ptQ, ptR, verbose);
     let pow = Math.floor((fieldN**2 - 1)/rorder);
-    return compNraise(ec, basic, pow);
+    let tate = compNraise(ec, basic, pow);
+
+    if (verbose) {
+        console.log()
+        console.log(`e(P, Q) = e(${strCompPt(ptP)}, ${strCompPt(ptQ)}) = ${strComplex(tate)}`)
+    }
+
+    return tate;
 }
