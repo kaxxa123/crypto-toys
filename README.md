@@ -93,6 +93,35 @@ pair.weilPairing(ec, P, Q, R, S, true)
 
 <BR />
 
+### Example 3 - Tate Pairing Computation
+Source: Pairings for beginners - Craig Costello (page 74)
+
+```JS
+let pair = require('./build/pairings.js')
+
+// Prepare curve parameters
+let ec = {
+        fieldN: 19, 
+        coeffA: 14, 
+        coeffB: 3, 
+        rorder: 5
+    }
+
+
+//Points for which the example is to be worked
+let P = [[17,0], [9, 0]]
+let Q = [[16,0], [0,16]]
+let R = [[18,2], [14,5]]
+
+//Pairing computation
+pair.tatePairing(ec, P, Q, R)
+
+//Expected Result: 2 + 15i
+```
+
+
+<BR />
+
 ---
 
 ## References

@@ -476,8 +476,8 @@ export function ecAllCycles(ec: ECurve, verbose: boolean = false): number[][][] 
     return allcycles;
 }
 
-//Compare if 2 sets have exactly the same elements
-export function compareSets(
+// Compare if 2 sets have exactly the same elements
+export function setCompare(
                     set1: number[][], 
                     set2: number[][], 
                     verbose: boolean = false): boolean {
@@ -520,22 +520,18 @@ export function compareSets(
     return (idxErr < 0);
 }
 
-// For each EC point compute its cycle, filtering out duplicates.
-export function ecUniqueCycles(ec: ECurve, verbose: boolean = false): number[][][] {
+// Subtract set elements returning only the elements in setA that are NOT in setB
+export function setSubtract(setA: number[][], setB: number[][]): number[][] {
+    return setA.filter((ptA) => (setB.findIndex((ptB) => pointsEquals(ptB, ptA)) == -1) );
+}
 
-    unpackEC(ec, ReqEC.NAB);
-    let cycAll = ecAllCycles(ec);
-    let cycOut = [cycAll[0]];
-    let cycIdx = [0];
+// Filter out duplicate sets
+export function setsUnique(sets: number[][][], verbose: boolean = false): number[][][] {
 
-    if (verbose)
-        console.log(cycAll[0])
-
-    for (let cnt = 1; cnt < cycAll.length; ++cnt) {
-
-        let idx = cycOut.findIndex((aCycle,aCycleIdx) => {
-            if (compareSets(cycAll[cnt], aCycle, false)) {
-                // console.log(`Cycle ${cnt+1} matches Cycle ${aCycleIdx+1}`);
+    let setsOut: number[][][] = [];
+    for (let cnt = 0; cnt < sets.length; ++cnt) {
+        let idx = setsOut.findIndex((oneSet) => {
+            if (setCompare(sets[cnt], oneSet, false)) {
                 return true;               
             }
             return false;
@@ -543,14 +539,19 @@ export function ecUniqueCycles(ec: ECurve, verbose: boolean = false): number[][]
 
         if (idx  == -1)
         {
-            cycOut.push(cycAll[cnt]);
-            cycIdx.push(cnt);
-
+            setsOut.push(sets[cnt]);
             if (verbose)
-                console.log(cycAll[cnt])
+                ecShowPoints(sets[cnt])
         }
     }
-    return cycOut;
+    return setsOut;
+}
+
+// For each EC point compute its cycle, filtering out duplicates.
+export function ecUniqueCycles(ec: ECurve, verbose: boolean = false): number[][][] {
+
+    unpackEC(ec, ReqEC.NAB);
+    return setsUnique(ecAllCycles(ec), verbose)        
 }
 
 // Compute Cn X Cm by applying the additive operation defined for EC points

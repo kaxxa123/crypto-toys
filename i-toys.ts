@@ -489,7 +489,7 @@ export function eciAllCycles(ec: ECurve, verbose: boolean = false): number[][][]
 }
 
 //Compare if 2 sets have exactly the same elements
-export function compCompareSets(
+export function compSetCompare(
                         set1: number[][][], 
                         set2: number[][][], 
                         verbose: boolean = false): boolean {
@@ -545,7 +545,7 @@ export function eciUniqueCycles(ec: ECurve, verbose: boolean = false): number[][
     for (let cnt = 1; cnt < cycAll.length; ++cnt) {
 
        let idx = cycOut.findIndex((aCycle, aCycleIdx) => {
-            if (compCompareSets(cycAll[cnt], aCycle, false)) {
+            if (compSetCompare(cycAll[cnt], aCycle, false)) {
                 //    console.log(`Cycle ${cnt+1} matches Cycle ${aCycleIdx+1}`);
                 return true;               
             }
@@ -612,8 +612,8 @@ export function eciTorsion(ec: ECurve, verbose: boolean = false): number[][][] {
 // which is 0, any other point in E[r] can be obtained as [i]P + [j]Q for i, j = [0, r-1]
 // Pairings for beginners - Craig Costello
 //
-// itoys.eciEr({fieldN: 11, coeffA: 0, coeffB: 4, rorder: 3}, [[0,0],[9,0]], [[7,2],[0,1]])
-export function eciEr(
+// itoys.eciTorByPts({fieldN: 11, coeffA: 0, coeffB: 4, rorder: 3}, [[0,0],[9,0]], [[7,2],[0,1]])
+export function eciTorByPts(
                 ec: ECurve, 
                 ptP: number[][], 
                 ptQ: number[][],
@@ -748,7 +748,7 @@ export function eciAntiFrobeniusTr(
 //                  Base-Field Subgroup
 //
 // let itoys = require('./build/i-toys.js')
-// let torPts = itoys.eciEr({fieldN: 11, coeffA: 0, coeffB: 4, rorder: 3}, [[0,0],[9,0]], [[7,2],[0,1]])
+// let torPts = itoys.eciTorByPts({fieldN: 11, coeffA: 0, coeffB: 4, rorder: 3}, [[0,0],[9,0]], [[7,2],[0,1]])
 // let baseField = itoys.eciFrobeniusTrMap( {fieldN: 11, coeffA: 0}, 2, torPts, true)
 export function eciFrobeniusTrMap(
                             ec: ECurve,
@@ -775,7 +775,7 @@ export function eciFrobeniusTrMap(
 //                  Trace Zero Subgroup
 //
 // let itoys = require('./build/i-toys.js')
-// let torPts = itoys.eciEr({fieldN: 11, coeffA: 0, coeffB: 4, rorder: 3}, [[0,0],[9,0]], [[7,2],[0,1]])
+// let torPts = itoys.eciTorByPts({fieldN: 11, coeffA: 0, coeffB: 4, rorder: 3}, [[0,0],[9,0]], [[7,2],[0,1]])
 // let traceZero = itoys.eciAntiFrobeniusTrMap({fieldN: 11, coeffA: 0}, 2, torPts, true)
 export function eciAntiFrobeniusTrMap(
                             ec: ECurve,

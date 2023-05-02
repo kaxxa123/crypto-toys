@@ -1,9 +1,11 @@
-import {ECurve, unpackEC, ReqEC} from './config'
-import {pointsEquals, sqrAndMultEx} from "./toys"
+import { ECurve, unpackEC, ReqEC } from './config'
+
+import { pointsEquals, isPrime, sqrAndMultEx, ecpoints,
+         ecMultiply, ecShowPoints } from "./toys"
 
 import {compmod, compsub, compmul, compNdiv, compNmul, compNsqr, compNraise,
         compPointsEquals, strComplex,
-        eciAdd, eciline2P, ecilinePplusQ, strCompPt,
+        ecipoints, eciAdd, eciMultiply, eciline2P, ecilinePplusQ, strCompPt,
         eciTorsion, eciFrobeniusTrMap, eciAntiFrobeniusTrMap, eciEmbeddingDegree, eciShowPoints } from "./i-toys"
 
 const INVALID_LINE = [[0,0],[0,0]];
@@ -346,4 +348,179 @@ export function weilTest(ec: ECurve, ptR: number[][], ptS: number[][]): boolean 
     }
 
     return true
+}
+
+// Verify the condition:     r||#E
+// for r prime, 
+//      r should divide #E, 
+//      r^2 should NOT divide #E
+export function orderDivFQ(ec: ECurve, group: number[][], verbose: boolean = false): void {
+
+    let {rorder} = unpackEC(ec, ReqEC.NABR);
+
+    if (verbose)
+        console.log(`#E = ${group.length}`)
+
+    if (!isPrime(rorder))
+        throw `Order r is not prime`
+
+    let rSqr = rorder*rorder
+    if ((group.length % rorder != 0) ||
+        (group.length % rSqr == 0))
+        throw `r||#E NOT satisfied`
+
+    if (verbose) {
+        let h = group.length/rorder
+        console.log(`h = #E/r = ${h}`)
+    }
+}
+
+// Verify the condition:     r^2||#E(Fq^k)
+// for r prime, 
+//      r^2 should divide #E(Fq^k), 
+//      r^4 should NOT divide #E(Fq^k)
+export function orderDivFQk(ec: ECurve, group: number[][][], verbose: boolean = false): void {
+
+    let {rorder} = unpackEC(ec, ReqEC.NABR);
+
+    if (verbose)
+        console.log(`#E(Fq^2) = ${group.length}`)
+
+    if (!isPrime(rorder))
+        throw `Order r is not prime`
+
+    let kpow = eciEmbeddingDegree(ec)
+    if (kpow < 2)
+        throw `Embedding Degree k > 1 required. ${kpow}`
+
+    let rSqr = rorder*rorder
+    let r4th = rSqr*rSqr
+    if ((group.length % rSqr != 0) ||
+        (group.length % r4th == 0))
+        throw `r^2||#E(Fq^2) NOT satisfied`
+
+    if (verbose) {
+        let h = group.length/rSqr
+        console.log(`h = #E(Fq^2)/r^2 = ${h}`)
+    }
+}
+
+// Compute the rE coset of size h, where h*r = #E(Fq)
+// for prime h and r
+//
+// let pair = require('./build/pairings.js')
+// pair.ecrE({fieldN: 53, coeffA: -5, coeffB: 8, rorder: 5}, true)
+export function ecrE(ec: ECurve, verbose: boolean = false): number[][] {
+
+    let {rorder} = unpackEC(ec, ReqEC.NABR);
+    let coset_rE: number[][] = [];
+    let pts = ecpoints(ec);
+
+    orderDivFQ(ec, pts, verbose);
+
+    for (let cnt = 0; cnt < pts.length; ++cnt) {
+        let rP = ecMultiply(ec, rorder, pts[cnt]);
+        
+        let idx = coset_rE.findIndex((onePt) => pointsEquals(onePt, rP));
+        if (idx == -1)
+            coset_rE.push(rP);
+    }
+
+    if (verbose)
+        ecShowPoints(coset_rE)
+
+    return coset_rE;
+}
+
+// Compute the rE coset of size h, where h*r^2 = #E(Fq^k)
+// rE(Fq^k) (written as rE) is the coset of points defined as: 
+//  rE = {[r]P: P ϵ E(Fq^k)}
+//  h  = #rE and includes 0
+//
+// let pair   = require('./build/pairings.js')
+// pair.ecirE({fieldN: 5, coeffA: 0, coeffB: -3, rorder: 3}, true)
+export function ecirE(ec: ECurve, verbose: boolean = false): number[][][] {
+
+    let {rorder} = unpackEC(ec, ReqEC.NABR);
+    let coset_rE: number[][][] = [];
+    let ptsF   = ecpoints(ec);
+    let ptsFqk = ecipoints(ec);
+
+    orderDivFQ(ec, ptsF, verbose);
+    orderDivFQk(ec, ptsFqk, verbose)
+    
+    for (let cnt = 0; cnt < ptsFqk.length; ++cnt) {
+        let rP = eciMultiply(ec, rorder, ptsFqk[cnt], true);
+        
+        let idx = coset_rE.findIndex((onePt) => compPointsEquals(onePt, rP));
+        if (idx == -1)
+            coset_rE.push(rP);
+    }
+
+    if (verbose)
+        eciShowPoints(coset_rE)
+
+    return coset_rE;
+}
+
+// Compute the "basic" Tate Pairing defined as:
+// e(P, Q) = f(DQ)      where DQ = (Q+S) – (S)
+// e(P, Q) = f(Q+S)/f(S)
+//
+// WARNING: This computation has the limitation that it returns a result within an 
+//          equivalnece class. Hence different results are possible for the same points
+//
+// let pair = require('./build/pairings.js')
+// let ec = {fieldN: 5, coeffA: 0, coeffB: -3, rorder: 3, iSQR: -2}
+// P = [[3,0],[2,0]]		
+// Q = [[1,1],[2,4]]		
+// R = [[0,2],[2,1]]
+// pair.tateBasic(ec, P, Q, R)
+export function tateBasic(
+    ec: ECurve, 
+    ptP: number[][], 
+    ptQ: number[][], 
+    ptR: number[][], 
+    verbose: boolean = false): number[] {
+
+    unpackEC(ec, ReqEC.NABR)
+    let ptQR    = eciAdd(ec, ptQ, ptR);
+    let quo     = fastFRP(ec, ptP, ptQR, verbose);
+    let div     = fastFRP(ec, ptP, ptR, verbose);
+
+    return compNdiv(ec,quo,div);
+}
+
+// Compute the Reduced Tate Pairing
+//
+// Given the same P and Q the pairing now always returns 
+// the same result. Thus the limitation of the tateBasic 
+// implementation is eliminated.
+//
+// let pair = require('./build/pairings.js')
+// let ec = {fieldN: 19, coeffA: 14, coeffB: 3, rorder: 5}
+// let P = [[17,0], [9, 0]]
+// let Q = [[16,0], [0,16]]
+// let R = [[18,2],[14,5]]
+// pair.tatePairing(ec, P, Q, R)        // [ 2,15]
+export function tatePairing(
+                    ec: ECurve, 
+                    ptP: number[][], 
+                    ptQ: number[][], 
+                    ptR: number[][], 
+                    verbose: boolean = false): number[] {
+
+    let {fieldN, rorder} = unpackEC(ec, ReqEC.NABR)
+
+    let ptsF   = ecpoints(ec);
+    let ptsFqk = ecipoints(ec);
+    orderDivFQ(ec, ptsF, verbose);
+    orderDivFQk(ec, ptsFqk, verbose)
+
+    if ((fieldN**2 - 1) % rorder != 0)
+        throw "Cardinality of Fq^k is not divisible by r";
+
+    let basic = tateBasic(ec, ptP, ptQ, ptR, verbose);
+    let pow = Math.floor((fieldN**2 - 1)/rorder);
+    return compNraise(ec, basic, pow);
 }

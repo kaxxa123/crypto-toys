@@ -302,7 +302,7 @@ yargs.command({
                             coeffA: argv.coeffA, 
                             coeffB: argv.coeffB}) 
 
-        if (TOYS.compareSets(pts, cycle, false))
+        if (TOYS.setCompare(pts, cycle, false))
                 console.log(`C[${argv.cn}] * C[${argv.cm}] produces same points as EC group`)
         else    console.log(`C[${argv.cn}] * C[${argv.cm}] DOES NOT produce same points as EC group`)
     }
