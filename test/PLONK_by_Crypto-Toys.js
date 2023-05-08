@@ -68,7 +68,7 @@ itoys.eciEmbeddingDegree(ec, true)
 ipts = itoys.ecipoints(ec,true)
 ipts.length     // Should return  10202
 
-// But does i^2 = -1 satisfy this condition?
+// But does it satisfy this condition?
 //      order || #E/Fq^k
 
 // Try retrieving the order 17 points for #E/Fq^k

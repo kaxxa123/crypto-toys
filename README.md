@@ -43,7 +43,7 @@ node ./build/index.js ecipoints --fieldN 11 --coeffA 4 --coeffB 3
 ```
 
 In this case ``fieldN`` is the integer field over which the EC operation is being computed. Whereas ``coeffA`` and ``coeffB`` are the ``A`` and ``B`` coefficients in the EC formula: <BR />
-``y^2 = x^3 + Ax + B``
+_y<sup>2</sup> = x<sup>3</sup> + Ax + B_
 
 For complete details on the parameters check the help for each command.
 
@@ -51,6 +51,7 @@ For complete details on the parameters check the help for each command.
 <BR />
 
 ---
+
 ## Running the Functions Directly from Node
 
 When computing operations that require multiple parameters, it is much easier to work directly from the node console. The scripts are organized as follows:
@@ -87,6 +88,8 @@ These are the parameters defining the field, EC and sub-group order over which c
 
 
 <BR />
+
+---
 
 ## Toy Examples from Literature
 
@@ -176,6 +179,13 @@ pair.tatePairing(ec, P, Q, R)
 //Expected Result: 2 + 15i
 ```
 
+<BR />
+
+---
+
+## PLONK by Crypto-Toys
+
+[See details on how to run PLONK setup using Crypto-Toys.](./docs/plonk_by_crypto-toys.md)
 
 <BR />
 
