@@ -52,7 +52,7 @@ This article won't use the command-line tool. It rather runs Crypto-Toys from th
 
 ``./build/toys.js`` - EC computations over finite fields of the type Fq. 
 
-``./build/i-toys.js`` - EC computations over an extension fields Fq^2. Only extension fields having embedding degree 2 are supported. This is often the case when dealing with toy examples.
+``./build/i-toys.js`` - EC computations over an extension field Fq^2. Only extension fields having embedding degree 2 are supported. This is often the case when dealing with toy examples.
 
 ``./build/p-toys.js`` - Support for projective coordinates.
 
@@ -80,7 +80,7 @@ interface ECurve {
 ``iSQR`` – the constant for customizing the degree 2 extension field. By default, _iSQR = -1_, hence the extension field is computed for _i<sup>2</sup> = -1_. Setting ``iSQR`` changes the i-squared value of course.
 
 
-Note how, depending on the function being invoked some of the ``ECurve`` properties may not be required.
+Depending on the function being invoked some of the ``ECurve`` properties may not be required.
 
 <BR />
 
