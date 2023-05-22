@@ -98,6 +98,8 @@ These are the parameters defining the field, EC and sub-group order over which c
 ### Example 1 - Weil Pairing Computation
 Source: On The Implementation Of Pairing-Based Cryptosystems - Ben Lynn (page 53 to 55)
 
+Computing ``e(P, Q)`` given additional points ``R`` and ``S``.
+
 ```JS
 let pair = require('./build/pairings.js')
 
@@ -118,7 +120,7 @@ S = [[48,55], [28,51]]
 //Pairing computation
 pair.weilPairing(ec, P, Q, R, S, true)
 
-//Expected Result: 46 + 56i
+//Expected Result: e(P, Q) = 46 + 56i
 ```
 
 
@@ -126,6 +128,8 @@ pair.weilPairing(ec, P, Q, R, S, true)
 
 ### Example 2 - Weil Pairing Computation
 Source: Pairings for beginners - Craig Costello (page 69 to 70)
+
+Computing ``e(P, Q)`` given additional points ``R`` and ``S``.
 
 ```JS
 let pair = require('./build/pairings.js')
@@ -147,7 +151,7 @@ S = [[18,10], [13,13]]
 //Pairing computation
 pair.weilPairing(ec, P, Q, R, S, true)
 
-//Expected Result: 11 + 15i
+//Expected Result: e(P, Q) = 11 + 15i
 ```
 
 
@@ -155,6 +159,8 @@ pair.weilPairing(ec, P, Q, R, S, true)
 
 ### Example 3 - Tate Pairing Computation
 Source: Pairings for beginners - Craig Costello (page 74)
+
+Computing ``e(P, Q)`` given additional point ``R``.
 
 ```JS
 let pair = require('./build/pairings.js')
@@ -176,7 +182,7 @@ let R = [[18,2], [14,5]]
 //Pairing computation
 pair.tatePairing(ec, P, Q, R)
 
-//Expected Result: 2 + 15i
+//Expected Result: e(P, Q) = 2 + 15i
 ```
 
 <BR />
