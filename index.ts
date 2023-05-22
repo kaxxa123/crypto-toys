@@ -457,7 +457,7 @@ yargs.command({
                                 coeffA: argv.coeffA, 
                                 coeffB: argv.coeffB,
                                 iSQR:   argv.isqr}, 
-                                [[argv.xPpt_real,argv.xPpt_imag],[argv.yPpt_real, argv.yPpt_imag]], false)
+                                [[argv.xPpt_real,argv.xPpt_imag],[argv.yPpt_real, argv.yPpt_imag]])
         ITOYS.eciShowCycles([cycle])
     }
 });
@@ -499,6 +499,27 @@ yargs.command({
                                 rorder: argv.rorder,
                                 iSQR:   argv.isqr}, false)   
         ITOYS.eciShowPoints(cycle)
+    }
+});
+
+yargs.command({
+    command: "ecitorcycles",
+    describe: "EC get all order r cycles over Fq^2",
+    builder: {
+        fieldN: fieldNOption,
+        coeffA: coeffAOption,
+        coeffB: coeffBOption,
+        rorder: rorderOption,
+        isqr: isqrOption,
+    },
+    handler: function (argv: any) {
+        const cycle = ITOYS.eciTorUniqueCycles({
+                                fieldN: argv.fieldN, 
+                                coeffA: argv.coeffA, 
+                                coeffB: argv.coeffB, 
+                                rorder: argv.rorder,
+                                iSQR:   argv.isqr}, false)   
+        ITOYS.eciShowCycles(cycle)
     }
 });
 

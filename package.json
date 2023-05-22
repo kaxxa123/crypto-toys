@@ -32,6 +32,7 @@
     "ecicycle": "node ./build/index.js ecicycle  --fieldN 11 --coeffA 4 --coeffB 3  --xPpt_real 10 --xPpt_imag 6 --yPpt_real 7 --yPpt_imag 8",
     "ecigetcycles": "node ./build/index.js ecigetcycles --fieldN 11 --coeffA 4 --coeffB 3",
     "ecitorsion": "node ./build/index.js ecitorsion  --fieldN 11 --coeffA 4 --coeffB 3  --rorder 14",
+    "ecitorcycles": "node ./build/index.js ecitorcycles  --fieldN 101 --coeffA 0 --coeffB 3  --rorder 17 --isqr -2",
     "eciembeddingdegree": "node ./build/index.js eciembeddingdegree  --fieldN 19 --rorder 5",
     "eciFrobenius": "node ./build/index.js eciFrobenius --fieldN 59 --coeffA 0 --coeffB 1  --rorder 5",
     "eciAntiFrobenius": "node ./build/index.js eciAntiFrobenius --fieldN 59 --coeffA 0 --coeffB 1  --rorder 5",

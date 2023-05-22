@@ -431,12 +431,16 @@ export function eciMultiply(
 
 // Given an initial point P, compute 2P, 3P, 4P until the cycle is closed.
 // A point that cycles through ALL group elements is a generator.
-export function eciCycle(ec: ECurve, ptP: number[][], verbose: boolean = false): number[][][] {
+export function eciCycle(
+                    ec: ECurve, 
+                    ptP: number[][], 
+                    ecPoints?: number[][][], 
+                    verbose: boolean = false): number[][][] {
 
     let {fieldN} = unpackEC(ec, ReqEC.NAB);
 
     //Get list of all points on this curve
-    let allPoints = ecipoints(ec, false);
+    let allPoints = ecPoints ?? ecipoints(ec, false);
     if (ecihasPoint(allPoints, ptP) == -1)
         throw `Failed: Input point is not within E/F${fieldN}`
 
@@ -466,26 +470,35 @@ export function eciCycle(ec: ECurve, ptP: number[][], verbose: boolean = false):
     return cycle;
 }
 
-// For each EC point compute its cycle
-export function eciAllCycles(ec: ECurve, verbose: boolean = false): number[][][][]  {
+// For each provided point compute its cycle
+export function eciPtsCycles(
+                    ec: ECurve, 
+                    points?: number[][][], 
+                    verbose: boolean = false): number[][][][]  {
 
     unpackEC(ec, ReqEC.NAB);
-    let points = ecipoints(ec);
+    let allPoints = ecipoints(ec);
     let allcycles = [];
 
+    points = points ?? allPoints;
     for (let cnt = 0; cnt < points.length; ++cnt) {
 
         //skip the special infinity point = [[0]]
         if (compPointsEquals(points[cnt], [[0]])) 
             continue;
 
-        let onecycle = eciCycle(ec, points[cnt]);
+        let onecycle = eciCycle(ec, points[cnt], allPoints);
         allcycles.push(onecycle);
 
         if (verbose)
             console.log(onecycle)
     }
     return allcycles;
+}
+
+// For each EC point compute its cycle
+export function eciAllCycles(ec: ECurve, verbose: boolean = false): number[][][][]  {
+    return eciPtsCycles(ec, undefined, verbose);
 }
 
 //Compare if 2 sets have exactly the same elements
@@ -531,21 +544,23 @@ export function compSetCompare(
     return (idxErr < 0);
 }
 
-// For each EC point compute its cycle, filtering out duplicates.
-export function eciUniqueCycles(ec: ECurve, verbose: boolean = false): number[][][][] {
+// For the provided cycles, filter out duplicates.
+export function eciUniqueCycleFilter(
+            cycles: number[][][][], 
+            verbose: boolean = false): number[][][][] {
 
-    unpackEC(ec, ReqEC.NAB);
-    let cycAll = eciAllCycles(ec);
-    let cycOut = [cycAll[0]];
+    if (cycles.length == 0)
+            return [];
+
+    let cycOut = [cycles[0]];
     let cycIdx = [0];
-
     if (verbose)
-        console.log(cycAll[0])
+        console.log(cycles[0])
 
-    for (let cnt = 1; cnt < cycAll.length; ++cnt) {
+    for (let cnt = 1; cnt < cycles.length; ++cnt) {
 
        let idx = cycOut.findIndex((aCycle, aCycleIdx) => {
-            if (compSetCompare(cycAll[cnt], aCycle, false)) {
+            if (compSetCompare(cycles[cnt], aCycle, false)) {
                 //    console.log(`Cycle ${cnt+1} matches Cycle ${aCycleIdx+1}`);
                 return true;               
             }
@@ -554,11 +569,11 @@ export function eciUniqueCycles(ec: ECurve, verbose: boolean = false): number[][
 
        if (idx  == -1)
        {
-            cycOut.push(cycAll[cnt]);
+            cycOut.push(cycles[cnt]);
             cycIdx.push(cnt);
 
             if (verbose)
-                console.log(cycAll[cnt])
+                console.log(cycles[cnt])
        }
     }
 
@@ -575,6 +590,13 @@ export function eciFilterCycles(cycles: number[][][][], rorder: number): number[
     })
 
     return cycOut;
+}
+
+// For each EC point compute its cycle, filtering out duplicates.
+export function eciUniqueCycles(ec: ECurve, verbose: boolean = false): number[][][][] {
+    unpackEC(ec, ReqEC.NAB);
+    let cycAll = eciAllCycles(ec);
+    return eciUniqueCycleFilter(cycAll, verbose);
 }
 
 // Find all the r-torsion points for the given curve. 
@@ -636,7 +658,7 @@ export function eciTorByPts(
         throw `Point Q is not of order ${rorder}`
 
     //Check that P and Q are not in the same subgroup
-    let cycleP = eciCycle(ec, ptP, false)
+    let cycleP = eciCycle(ec, ptP)
     if (ecihasPoint(cycleP, ptQ) != -1)
         throw `P and Q are in the same subgroup`
     
@@ -653,6 +675,14 @@ export function eciTorByPts(
         console.log(ptsOut)
 
     return ptsOut;
+}
+
+// For each N-order point compute its cycle, filtering out duplicates.
+export function eciTorUniqueCycles(ec: ECurve, verbose: boolean = false): number[][][][] {
+    unpackEC(ec, ReqEC.NABR);
+    let points = eciTorsion(ec);
+    let cycNOrder = eciPtsCycles(ec, points, verbose);
+    return eciUniqueCycleFilter(cycNOrder, verbose);
 }
 
 // Map point by applying Frobenius endomorphism π
