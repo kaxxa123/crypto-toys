@@ -161,7 +161,7 @@ export function ecihasPoint(set: number[][][], pt: number[][]): number {
 
 // Check if P + Q = R for any P, Q gives an R within the same group
 //
-// let itoys = require('./build/i-toys.js')
+// let itoys = require('./build/src/i-toys.js')
 // itoys.eciClosure({fieldN: 11, coeffA: 4, coeffB: 3}, true)
 // itoys.eciClosure({fieldN: 13, coeffA: 4, coeffB: 3}, true)
 //
@@ -777,7 +777,7 @@ export function eciAntiFrobeniusTr(
 // ...which effectively results in the: 
 //                  Base-Field Subgroup
 //
-// let itoys = require('./build/i-toys.js')
+// let itoys = require('./build/src/i-toys.js')
 // let torPts = itoys.eciTorByPts({fieldN: 11, coeffA: 0, coeffB: 4, rorder: 3}, [[0,0],[9,0]], [[7,2],[0,1]])
 // let baseField = itoys.eciFrobeniusTrMap( {fieldN: 11, coeffA: 0}, 2, torPts, true)
 export function eciFrobeniusTrMap(
@@ -804,7 +804,7 @@ export function eciFrobeniusTrMap(
 // ...which effectively results in the: 
 //                  Trace Zero Subgroup
 //
-// let itoys = require('./build/i-toys.js')
+// let itoys = require('./build/src/i-toys.js')
 // let torPts = itoys.eciTorByPts({fieldN: 11, coeffA: 0, coeffB: 4, rorder: 3}, [[0,0],[9,0]], [[7,2],[0,1]])
 // let traceZero = itoys.eciAntiFrobeniusTrMap({fieldN: 11, coeffA: 0}, 2, torPts, true)
 export function eciAntiFrobeniusTrMap(

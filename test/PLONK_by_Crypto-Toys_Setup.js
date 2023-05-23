@@ -8,8 +8,8 @@
 // This script is meant to be manually typed into node as a learning exercise
 // rather than running it all at one go.
 
-let toys = require('./build/toys.js')
-let itoys = require('./build/i-toys.js')
+let toys = require('./build/src/toys.js')
+let itoys = require('./build/src/i-toys.js')
 
 
 toys.posmod(-1,101)     //  = 100

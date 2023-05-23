@@ -53,7 +53,7 @@ export function showFRPVertical(ec: ECurve, ptP: number[][]) {
 // for any r-torsion. The result can be fed to solveFRP together with
 // a specific point P for which we want to workout frp
 //
-// let pair   = require('./build/pairings.js')
+// let pair   = require('./build/src/pairings.js')
 // let params = pair.getFRPparams({fieldN: 23, coeffA: 17, coeffB: 6, rorder: 5}, [[10,0],[7,0]], true)
 export function getFRPparams(ec: ECurve, ptP: number[][], verbose: boolean = false): number[][][][] {
     let {rorder} = unpackEC(ec, ReqEC.NABR)
@@ -91,8 +91,8 @@ export function getFRPparams(ec: ECurve, ptP: number[][], verbose: boolean = fal
 //       --------------------------------------
 //          V_[2]P * V_[3]P * … * V_[r-2]P
 //
-// let toys = require('./build/toys.js')
-// let pair = require('./build/pairings.js')
+// let toys = require('./build/src/toys.js')
+// let pair = require('./build/src/pairings.js')
 //
 // let tor5   = toys.ecTorsion({fieldN: 23, coeffA: 17, coeffB: 6, rorder: 5}, true)
 // let params = pair.getFRPparams({fieldN: 23, coeffA: 17, coeffB: 6, rorder: 5}, [[tor5[1][0], 0], [tor5[1][1], 0]], true)
@@ -257,7 +257,7 @@ export function solveWeilFD(
 // Page 53 to 55
 // Expected Result = (46 + 56i)
 //
-// let pair = require('./build/pairings.js')
+// let pair = require('./build/src/pairings.js')
 // pair.weilPairing({fieldN: 59, coeffA: 1, coeffB: 0, rorder: 5}, [[25,0], [30,0]], [[(59-25),0], [0,30]], [[40,0], [54,0]], [[48,55], [28,51]])
  export function weilPairing(
                     ec: ECurve, 
@@ -296,7 +296,7 @@ export function solveWeilFD(
 //
 // function only supports cases for embedding degree k = 2
 //
-// let pair = require('./build/pairings.js')
+// let pair = require('./build/src/pairings.js')
 // pair.weilTest({fieldN: 59, coeffA: 1, coeffB: 0, rorder: 5}, [[40,0], [54,0]], [[48,55], [28,51]])
 export function weilTest(ec: ECurve, ptR: number[][], ptS: number[][]): boolean {
 
@@ -413,7 +413,7 @@ export function orderDivFQk(ec: ECurve, group: number[][][], verbose: boolean = 
 // Compute the rE coset of size h, where h*r = #E(Fq)
 // for prime h and r
 //
-// let pair = require('./build/pairings.js')
+// let pair = require('./build/src/pairings.js')
 // pair.ecrE({fieldN: 53, coeffA: -5, coeffB: 8, rorder: 5}, true)
 export function ecrE(ec: ECurve, verbose: boolean = false): number[][] {
 
@@ -442,7 +442,7 @@ export function ecrE(ec: ECurve, verbose: boolean = false): number[][] {
 //  rE = {[r]P: P ϵ E(Fq^k)}
 //  h  = #rE and includes 0
 //
-// let pair   = require('./build/pairings.js')
+// let pair   = require('./build/src/pairings.js')
 // pair.ecirE({fieldN: 5, coeffA: 0, coeffB: -3, rorder: 3}, true)
 export function ecirE(ec: ECurve, verbose: boolean = false): number[][][] {
 
@@ -475,7 +475,7 @@ export function ecirE(ec: ECurve, verbose: boolean = false): number[][][] {
 // WARNING: This computation has the limitation that it returns a result within an 
 //          equivalnece class. Hence different results are possible for the same points
 //
-// let pair = require('./build/pairings.js')
+// let pair = require('./build/src/pairings.js')
 // let ec = {fieldN: 5, coeffA: 0, coeffB: -3, rorder: 3, iSQR: -2}
 // P = [[3,0],[2,0]]		
 // Q = [[1,1],[2,4]]		
@@ -502,7 +502,7 @@ export function tateBasic(
 // the same result. Thus the limitation of the tateBasic 
 // implementation is eliminated.
 //
-// let pair = require('./build/pairings.js')
+// let pair = require('./build/src/pairings.js')
 // let ec = {fieldN: 19, coeffA: 14, coeffB: 3, rorder: 5}
 // let P = [[17,0], [9, 0]]
 // let Q = [[16,0], [0,16]]

@@ -30,7 +30,7 @@ npm run build
 Next, we can run the Crypto-Toys command line. Check the available commands using:
 
 ```BASH
-node ./build/index --help
+node ./build/src/index --help
 ```
 
 Let's take an example curve from [Craig Costello's Pairings for beginners](https://www.craigcostello.com.au/s/PairingsForBeginners.pdf). <BR />
@@ -39,24 +39,24 @@ E: y<sup>2</sup> = x<sup>3</sup> - 5x + 8 over the finite field F<sub>37</sub>
 
 To get all the points run the command:
 ```BASH
-node ./build/index.js ecpoints --fieldN 37 --coeffA -5 --coeffB 8
+node ./build/src/index.js ecpoints --fieldN 37 --coeffA -5 --coeffB 8
 ```
 
 ...and for the same curve over F<sub>37^2</sub>, we get the points using:
 
 ```BASH
-node ./build/index.js ecipoints --fieldN 37 --coeffA -5 --coeffB 8
+node ./build/src/index.js ecipoints --fieldN 37 --coeffA -5 --coeffB 8
 ```
 
 This article won't use the command-line tool. It rather runs Crypto-Toys from the node console. We thus need to learn how Crypto-Toys is organized.
 
-``./build/toys.js`` - EC computations over finite fields of the type Fq. 
+``./build/src/toys.js`` - EC computations over finite fields of the type Fq. 
 
-``./build/i-toys.js`` - EC computations over an extension field Fq^2. Only extension fields having embedding degree 2 are supported. This is often the case when dealing with toy examples.
+``./build/src/i-toys.js`` - EC computations over an extension field Fq^2. Only extension fields having embedding degree 2 are supported. This is often the case when dealing with toy examples.
 
-``./build/p-toys.js`` - Support for projective coordinates.
+``./build/src/p-toys.js`` - Support for projective coordinates.
 
-``./build/pairings.js`` - Pairings computations.
+``./build/src/pairings.js`` - Pairings computations.
 
 In this article only ``toys.js`` and ``i-toys.js`` are used.
 
@@ -93,8 +93,8 @@ We now turn our attention to the computations presented in PLONK by Hand. Here I
 Assuming you already cloned and built Crypto-Toys, it's time to fire node and import the necessary functions with:
 
 ```JS
-let toys = require('./build/toys.js')
-let itoys = require('./build/i-toys.js')
+let toys = require('./build/src/toys.js')
+let itoys = require('./build/src/i-toys.js')
 ```
 
 We start by exploring the EC over F<sub>101</sub>, for which the ZKP is being set up. <BR/>

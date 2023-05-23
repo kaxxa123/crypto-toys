@@ -27,10 +27,10 @@ After building the project, check all possible command line operations by runnin
 npm run help
 
 # List of all commands from node
-node ./build/index --help
+node ./build/src/index --help
 
 # Help for individual commands
-node ./build/index ecipoints --help
+node ./build/src/index ecipoints --help
 ```
 For each command, an npm script is available that allows to quickly see the command in action without entering any parameters. For example, to quickly see ``ecipoints`` in action:
 ```BASH
@@ -39,7 +39,7 @@ npm run ecipoints
 
 From here one can copy the command line used to generate the output and customize it to the required EC. For example (at the time of writing) the command generated for ``ecipoints`` is:
 ```BASH
-node ./build/index.js ecipoints --fieldN 11 --coeffA 4 --coeffB 3
+node ./build/src/index.js ecipoints --fieldN 11 --coeffA 4 --coeffB 3
 ```
 
 In this case ``fieldN`` is the integer field over which the EC operation is being computed. Whereas ``coeffA`` and ``coeffB`` are the ``A`` and ``B`` coefficients in the EC formula: <BR />
@@ -58,18 +58,18 @@ When computing operations that require multiple parameters, it is much easier to
 
 ```JS
 // DL and EC operations over the affine space
-let toys = require('./build/toys.js')
+let toys = require('./build/src/toys.js')
 
 // EC operations over an extension field of the type i^2 = constant
 // by default i^2 = -1, however this can be customized by setting 
 // iSQR in the EC configuration.
-let itoys = require('./build/i-toys.js')
+let itoys = require('./build/src/i-toys.js')
 
 //Functions for computing EC using projective coordinates
-let ptoys = require('./build/p-toys.js')
+let ptoys = require('./build/src/p-toys.js')
 
 //Functions for computing pairings
-let pair = require('./build/pairings.js')
+let pair = require('./build/src/pairings.js')
 ```
 
 The most important configuration structure to be aware when working with these functions is ``ECurve`` which is defined as follows:
@@ -101,7 +101,7 @@ Source: On The Implementation Of Pairing-Based Cryptosystems - Ben Lynn (page 53
 Computing ``e(P, Q)`` given additional points ``R`` and ``S``.
 
 ```JS
-let pair = require('./build/pairings.js')
+let pair = require('./build/src/pairings.js')
 
 // Prepare curve parameters
 let ec = {
@@ -132,7 +132,7 @@ Source: Pairings for beginners - Craig Costello (page 69 to 70)
 Computing ``e(P, Q)`` given additional points ``R`` and ``S``.
 
 ```JS
-let pair = require('./build/pairings.js')
+let pair = require('./build/src/pairings.js')
 
 // Prepare curve parameters
 let ec = {
@@ -163,7 +163,7 @@ Source: Pairings for beginners - Craig Costello (page 74)
 Computing ``e(P, Q)`` given additional point ``R``.
 
 ```JS
-let pair = require('./build/pairings.js')
+let pair = require('./build/src/pairings.js')
 
 // Prepare curve parameters
 let ec = {

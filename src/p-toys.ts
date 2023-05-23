@@ -157,7 +157,7 @@ export function projAdd(
 // ...do this for both the affine and projective space
 // ...confirm that the result is the same.
 //
-// let ptoys = require('./build/p-toys.js')
+// let ptoys = require('./build/src/p-toys.js')
 // ptoys.projTestPplusQ({fieldN: 11, coeffA: 4, coeffB: 3}, true)
 // ptoys.projTestPplusQ({fieldN: 13, coeffA: 4, coeffB: 3}, true)
 export function projTestPplusQ(ec: ECurve, verbose: boolean = false): boolean {
@@ -245,7 +245,7 @@ export function projTestPplusQ(ec: ECurve, verbose: boolean = false): boolean {
 // ...do this for both the affine and projective space
 // ...confirm that the result is the same.
 //
-// let ptoys = require('./build/p-toys.js')
+// let ptoys = require('./build/src/p-toys.js')
 // ptoys.projTest2P({fieldN: 11, coeffA: 4, coeffB: 3}, true)
 // ptoys.projTest2P({fieldN: 13, coeffA: 4, coeffB: 3}, true)
 export function projTest2P(ec: ECurve, verbose: boolean = false): boolean {

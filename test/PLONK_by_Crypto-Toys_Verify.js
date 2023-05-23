@@ -8,9 +8,9 @@
 // This script is meant to be manually typed into node as a learning exercise
 // rather than running it all at one go.
 
-const toys = require('./build/toys.js')
-const itoys = require('./build/i-toys.js')
-const pair = require('./build/pairings.js')
+const toys = require('./build/src/toys.js')
+const itoys = require('./build/src/i-toys.js')
+const pair = require('./build/src/pairings.js')
 
 // Prepare curve parameters
 ec = {fieldN: 101, coeffA: 0, coeffB: 3, rorder: 17, iSQR: -2}
