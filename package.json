@@ -1,6 +1,6 @@
 {
   "name": "crypto-toys",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Scripts for computing DLP and EC toy examples",
   "main": "build/src/index.js",
   "types": "build/src/index.d.ts",
