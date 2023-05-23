@@ -30,7 +30,7 @@ npm run build
 Next, we can run the Crypto-Toys command line. Check the available commands using:
 
 ```BASH
-node ./build/src/index --help
+node ./build/src/toyscli --help
 ```
 
 Let's take an example curve from [Craig Costello's Pairings for beginners](https://www.craigcostello.com.au/s/PairingsForBeginners.pdf). <BR />
@@ -39,13 +39,13 @@ E: y<sup>2</sup> = x<sup>3</sup> - 5x + 8 over the finite field F<sub>37</sub>
 
 To get all the points run the command:
 ```BASH
-node ./build/src/index.js ecpoints --fieldN 37 --coeffA -5 --coeffB 8
+node ./build/src/toyscli.js ecpoints --fieldN 37 --coeffA -5 --coeffB 8
 ```
 
 ...and for the same curve over F<sub>37^2</sub>, we get the points using:
 
 ```BASH
-node ./build/src/index.js ecipoints --fieldN 37 --coeffA -5 --coeffB 8
+node ./build/src/toyscli.js ecipoints --fieldN 37 --coeffA -5 --coeffB 8
 ```
 
 This article won't use the command-line tool. It rather runs Crypto-Toys from the node console. We thus need to learn how Crypto-Toys is organized.

@@ -27,10 +27,10 @@ After building the project, check all possible command line operations by runnin
 npm run help
 
 # List of all commands from node
-node ./build/src/index --help
+node ./build/src/toyscli --help
 
 # Help for individual commands
-node ./build/src/index ecipoints --help
+node ./build/src/toyscli ecipoints --help
 ```
 For each command, an npm script is available that allows to quickly see the command in action without entering any parameters. For example, to quickly see ``ecipoints`` in action:
 ```BASH
@@ -39,7 +39,7 @@ npm run ecipoints
 
 From here one can copy the command line used to generate the output and customize it to the required EC. For example (at the time of writing) the command generated for ``ecipoints`` is:
 ```BASH
-node ./build/src/index.js ecipoints --fieldN 11 --coeffA 4 --coeffB 3
+node ./build/src/toyscli.js ecipoints --fieldN 11 --coeffA 4 --coeffB 3
 ```
 
 In this case ``fieldN`` is the integer field over which the EC operation is being computed. Whereas ``coeffA`` and ``coeffB`` are the ``A`` and ``B`` coefficients in the EC formula: <BR />
