@@ -7,10 +7,15 @@
 //
 // This script is meant to be manually typed into node as a learning exercise
 // rather than running it all at one go.
+//
+// Run this script by creating a node.js project:
+//      npm init -y
+//      npm i crypto-toys
+//
+// Then open the node console and enter the script 
+// commands whilst inspecting the output
 
-let toys = require('./build/src/toys.js')
-let itoys = require('./build/src/i-toys.js')
-
+let toys = require('crypto-toys')
 
 toys.posmod(-1,101)     //  = 100
 toys.inverse(101, -2)	//  =  50
@@ -60,46 +65,46 @@ toys.ecCycle(ec, [1,2], true)
 ec = {fieldN: 101, coeffA: 0, coeffB: 3, rorder: 17, iSQR: -1}
 
 // Compute embedding degree
-itoys.eciEmbeddingDegree(ec, true)
+toys.eciEmbeddingDegree(ec, true)
 // Returns:
 // Embedding Degree k = 2
 
 // Let's discover the cardinality of #E/Fq^k
-ipts = itoys.ecipoints(ec,true)
+ipts = toys.ecipoints(ec,true)
 ipts.length     // Should return  10202
 
 // But does it satisfy this condition?
 //      order || #E/Fq^k
 
 // Try retrieving the order 17 points for #E/Fq^k
-tor17 = itoys.eciTorsion(ec,true)
+tor17 = toys.eciTorsion(ec,true)
 // FAILED! with error 'r (17) is not a factor of #E (10202)'
 
 //==========================================================
 
 // Repeat computations with i^2 = -2
 ec = {fieldN: 101, coeffA: 0, coeffB: 3, rorder: 17, iSQR: -2}
-itoys.eciEmbeddingDegree(ec, true) // k = 2
-ipts = itoys.ecipoints(ec,true)
+toys.eciEmbeddingDegree(ec, true) // k = 2
+ipts = toys.ecipoints(ec,true)
 ipts.length     // Should return 10404 (= 17*612)
 
-tor17 = itoys.eciTorsion(ec,true)
+tor17 = toys.eciTorsion(ec,true)
 tor17.length    // Should return 289 (= 17*17)
 
 //==========================================================
 
 // Apply the Frobenius Trace Map to all order-17 points
 // obtaining the set of unique points that compose G1
-G1 = itoys.eciFrobeniusTrMap(ec, 2, tor17, true)
-itoys.eciShowPoints(G1)
+G1 = toys.eciFrobeniusTrMap(ec, 2, tor17, true)
+toys.eciShowPoints(G1)
 // Total Points 17: (0,0), (68,74), (68,27), (18,52), (18,49), 
 // (91,35), (91,66), (12,69), (12,32), (65,3), (65,98), (1,99), 
 // (1,2), (32,59), (32,42), (26,45), (26,56)
 
 // Apply the Anti-Trace Map to all order-17 points
 // obtaining the set of unique points that compose G2
-G2 = itoys.eciAntiFrobeniusTrMap(ec, 2, tor17, true)
-itoys.eciShowPoints(G2)
+G2 = toys.eciAntiFrobeniusTrMap(ec, 2, tor17, true)
+toys.eciShowPoints(G2)
 // Total Points 17: (0,0), (36,31i), (36,70i), (66,78i), (66,23i), 
 // (41,22i), (41,79i), (63,66i), (63,35i), (10,85i), (10,16i), 
 // (90,19i), (90,82i), (2,34i), (2,67i), (74,89i), (74,12i)
@@ -115,16 +120,16 @@ srsG1 = []
 srsG2 = []
 
 for (cnt = 0; cnt <= gates+2; ++cnt) {
-    srsPt = itoys.eciMultiply(ec, secret_s**cnt, g1)
+    srsPt = toys.eciMultiply(ec, secret_s**cnt, g1)
     srsG1.push(srsPt)
 }
 
-srsPt = itoys.eciMultiply(ec, secret_s, g2)
+srsPt = toys.eciMultiply(ec, secret_s, g2)
 srsG2.push(g2)
 srsG2.push(srsPt)
 
-itoys.eciShowPoints(srsG1)
+toys.eciShowPoints(srsG1)
 // Total Points 7: (1,2), (68,74), (65,98), (18,49), (1,99), (68,27), (65,3)
 
-itoys.eciShowPoints(srsG2)
+toys.eciShowPoints(srsG2)
 // Total Points 2: (36,31i), (90,82i)

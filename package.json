@@ -1,8 +1,9 @@
 {
   "name": "crypto-toys",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Scripts for computing DLP and EC toy examples",
-  "main": "build/src/toyscli.js",
+  "main": "build/src/index.js",
+  "types": "build/src/index.d.ts",
   "scripts": {
     "build": "rm ./build -rf && tsc",
     "help": "node ./build/src/toyscli.js --help",
@@ -48,7 +49,9 @@
     "url": "git+https://github.com/kaxxa123/crypto-toys.git"
   },
   "files": [
-    "build"
+    "build",
+    "docs",
+    "examples"
   ],
   "keywords": [],
   "author": "Alexander Zammit",
