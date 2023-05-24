@@ -1,27 +1,172 @@
 # crypto-toys
-Scripts for computing Discrete Logarithm, Elliptic Curve and Pairings toy examples. This collection of function is intended to be used through the interactive node console. 
+Library for computing Discrete Logarithm, Elliptic Curve and Pairings toy examples. 
 
-Also included is a primitive command line tool to try out the available functionality.
+Crypto-Toys may be either installed as a library, or else one may clone the project, 
+build it and run its command line tool.
 
 <BR />
 
-## Setup and Build
+---
 
-Requirements: node v14 or later
+## Requirements
 
-Setup:
+Node.js v14 or later
+
+<BR />
+
+---
+
+## Crypto-Toys Library
+
+To add crypto-toys to a node.js project:
 ```BASH
+npm i crypto-toys
+```
+
+Next import the library using one of these methods:
+```JS
+const toys = require("crypto-toys")
+```
+
+```TS
+import * as toys from "crypto-toys"
+```
+
+The most important configuration structure to be aware of is ``ECurve``, defined as follows:
+
+```TS
+interface ECurve {
+    fieldN: number;
+    coeffA?: number;
+    coeffB?: number;
+    rorder?: number;
+    iSQR?: number;
+}
+```
+
+These are the parameters defining the field, EC and sub-group order over which computations are to be computed.
+
+
+<BR />
+
+---
+
+## Toy Examples from Literature
+
+<BR />
+
+### Example 1 - Weil Pairing Computation
+Source: On The Implementation Of Pairing-Based Cryptosystems - Ben Lynn (page 53 to 55)
+
+Computing ``e(P, Q)`` given additional points ``R`` and ``S``.
+
+```JS
+const toys = require("crypto-toys")
+
+// Prepare curve parameters
+let ec = {
+        fieldN: 59,
+        coeffA: 1,
+        coeffB: 0,
+        rorder: 5
+    }
+
+//Points for which the example is to be worked
+let P = [[25,0], [30,0]]
+let Q = [[(59-25),0], [0,30]]
+let R = [[40,0], [54,0]]
+let S = [[48,55], [28,51]]
+
+//Pairing computation
+toys.weilPairing(ec, P, Q, R, S, true)
+
+//Expected Result: e(P, Q) = 46 + 56i
+```
+
+
+<BR />
+
+### Example 2 - Weil Pairing Computation
+Source: Pairings for beginners - Craig Costello (page 69 to 70)
+
+Computing ``e(P, Q)`` given additional points ``R`` and ``S``.
+
+```JS
+const toys = require("crypto-toys")
+
+// Prepare curve parameters
+let ec = {
+        fieldN: 23,
+        coeffA: -1,
+        coeffB: 0,
+        rorder: 3
+    }
+
+//Points for which the example is to be worked
+let P = [[2,0], [11,0]]
+let Q = [[21,0], [0,12]]
+let R = [[0,17], [21,2]]
+let S = [[18,10], [13,13]]
+
+//Pairing computation
+toys.weilPairing(ec, P, Q, R, S, true)
+
+//Expected Result: e(P, Q) = 11 + 15i
+```
+
+
+<BR />
+
+### Example 3 - Tate Pairing Computation
+Source: Pairings for beginners - Craig Costello (page 74)
+
+Computing ``e(P, Q)`` given additional point ``R``.
+
+```JS
+const toys = require("crypto-toys")
+
+// Prepare curve parameters
+let ec = {
+        fieldN: 19, 
+        coeffA: 14, 
+        coeffB: 3, 
+        rorder: 5
+    }
+
+
+//Points for which the example is to be worked
+let P = [[17,0], [9, 0]]
+let Q = [[16,0], [0,16]]
+let R = [[18,2], [14,5]]
+
+//Pairing computation
+toys.tatePairing(ec, P, Q, R, true)
+
+//Expected Result: e(P, Q) = 2 + 15i
+```
+
+<BR />
+
+---
+
+## Clone and Build
+
+```BASH
+git clone https://github.com/kaxxa123/crypto-toys.git
+cd crypto-toys
 npm install
 npm run build
 ```
 
 <BR />
 
+---
 
-## Command-Line Tool
+
+## Crypto-Toys Command-Line Tool
 
 
-After building the project, check all possible command line operations by running:
+After building crypto-toys, check all possible command line operations by running:
 ```BASH
 # List of all commands from npm
 npm run help
@@ -47,143 +192,6 @@ _y<sup>2</sup> = x<sup>3</sup> + Ax + B_
 
 For complete details on the parameters check the help for each command.
 
-
-<BR />
-
----
-
-## Running the Functions Directly from Node
-
-When computing operations that require multiple parameters, it is much easier to work directly from the node console. The scripts are organized as follows:
-
-```JS
-// DL and EC operations over the affine space
-let toys = require('./build/src/toys.js')
-
-// EC operations over an extension field of the type i^2 = constant
-// by default i^2 = -1, however this can be customized by setting 
-// iSQR in the EC configuration.
-let itoys = require('./build/src/i-toys.js')
-
-//Functions for computing EC using projective coordinates
-let ptoys = require('./build/src/p-toys.js')
-
-//Functions for computing pairings
-let pair = require('./build/src/pairings.js')
-```
-
-The most important configuration structure to be aware when working with these functions is ``ECurve`` which is defined as follows:
-
-```TS
-interface ECurve {
-    fieldN: number;
-    coeffA?: number;
-    coeffB?: number;
-    rorder?: number;
-    iSQR?: number;
-}
-```
-
-These are the parameters defining the field, EC and sub-group order over which computations are to be carried out.
-
-
-<BR />
-
----
-
-## Toy Examples from Literature
-
-<BR />
-
-### Example 1 - Weil Pairing Computation
-Source: On The Implementation Of Pairing-Based Cryptosystems - Ben Lynn (page 53 to 55)
-
-Computing ``e(P, Q)`` given additional points ``R`` and ``S``.
-
-```JS
-let pair = require('./build/src/pairings.js')
-
-// Prepare curve parameters
-let ec = {
-        fieldN: 59,
-        coeffA: 1,
-        coeffB: 0,
-        rorder: 5
-    }
-
-//Points for which the example is to be worked
-P = [[25,0], [30,0]]
-Q = [[(59-25),0], [0,30]]
-R = [[40,0], [54,0]]
-S = [[48,55], [28,51]]
-
-//Pairing computation
-pair.weilPairing(ec, P, Q, R, S, true)
-
-//Expected Result: e(P, Q) = 46 + 56i
-```
-
-
-<BR />
-
-### Example 2 - Weil Pairing Computation
-Source: Pairings for beginners - Craig Costello (page 69 to 70)
-
-Computing ``e(P, Q)`` given additional points ``R`` and ``S``.
-
-```JS
-let pair = require('./build/src/pairings.js')
-
-// Prepare curve parameters
-let ec = {
-        fieldN: 23,
-        coeffA: -1,
-        coeffB: 0,
-        rorder: 3
-    }
-
-//Points for which the example is to be worked
-P = [[2,0], [11,0]]
-Q = [[21,0], [0,12]]
-R = [[0,17], [21,2]]
-S = [[18,10], [13,13]]
-
-//Pairing computation
-pair.weilPairing(ec, P, Q, R, S, true)
-
-//Expected Result: e(P, Q) = 11 + 15i
-```
-
-
-<BR />
-
-### Example 3 - Tate Pairing Computation
-Source: Pairings for beginners - Craig Costello (page 74)
-
-Computing ``e(P, Q)`` given additional point ``R``.
-
-```JS
-let pair = require('./build/src/pairings.js')
-
-// Prepare curve parameters
-let ec = {
-        fieldN: 19, 
-        coeffA: 14, 
-        coeffB: 3, 
-        rorder: 5
-    }
-
-
-//Points for which the example is to be worked
-let P = [[17,0], [9, 0]]
-let Q = [[16,0], [0,16]]
-let R = [[18,2], [14,5]]
-
-//Pairing computation
-pair.tatePairing(ec, P, Q, R)
-
-//Expected Result: e(P, Q) = 2 + 15i
-```
 
 <BR />
 

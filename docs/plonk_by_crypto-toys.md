@@ -19,7 +19,13 @@ Thus, to follow the rest of the article the following is required: <BR />
 
 ## Get Started with Crypto-Toys
 
-Crypto-Toys requires node v14 or later. Start by cloning the repository and build the project:
+Crypto-Toys requires node v14 or later. It may be included as a library in any node.js project using:
+
+```BASH
+npm i crypto-toys
+```
+
+Otherwise, one may clone the Crypto-Toys repository, build it, and run it interactively from the console. Here, I will be using this method. Start by cloning the repository and building the project:
 
 ```BASH
 git clone https://github.com/kaxxa123/crypto-toys.git
