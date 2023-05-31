@@ -41,8 +41,10 @@
 
     "frpParams": "node ./build/src/toyscli.js frpParams --fieldN 59 --coeffA 1  --coeffB 0  --rorder 5  --xPpt_real 25 --xPpt_imag 0 --yPpt_real 30 --yPpt_imag 0",
     "weil":      "node ./build/src/toyscli.js weil      --fieldN 59 --coeffA 1  --coeffB 0  --rorder 5  --xPpt_real 25 --xPpt_imag 0 --yPpt_real 30 --yPpt_imag 0      --xQpt_real 34 --xQpt_imag  0 --yQpt_real  0 --yQpt_imag 30    --xRpt_real 40 --xRpt_imag  0 --yRpt_real 54 --yRpt_imag  0     --xSpt_real 48 --xSpt_imag 55 --ySpt_real 28 --ySpt_imag 51",
-    "tate":      "node ./build/src/toyscli.js tate      --fieldN 19 --coeffA 14 --coeffB 3  --rorder 5  --xPpt_real 17 --xPpt_imag 0 --yPpt_real  9 --yPpt_imag 0      --xQpt_real 16 --xQpt_imag  0 --yQpt_real  0 --yQpt_imag 16    --xRpt_real 18 --xRpt_imag  2 --yRpt_real 14 --yRpt_imag  5"
+    "tate":      "node ./build/src/toyscli.js tate      --fieldN 19 --coeffA 14 --coeffB 3  --rorder 5  --xPpt_real 17 --xPpt_imag 0 --yPpt_real  9 --yPpt_imag 0      --xQpt_real 16 --xQpt_imag  0 --yQpt_real  0 --yQpt_imag 16    --xRpt_real 18 --xRpt_imag  2 --yRpt_real 14 --yRpt_imag  5",
 
+    "shamirSetup": "node ./build/src/toyscli.js shamirSetup --fieldN 101 --secret 73 --threshold 3 --party 5",
+    "shamirRecover": "node ./build/src/toyscli.js shamirRecover --fieldN 101 --shares \"[[27,74], [17,40], [66,16]]\""
   },
   "repository": {
     "type": "git",

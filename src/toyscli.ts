@@ -1,6 +1,7 @@
 import * as TOYS from "./toys"
 import * as ITOYS from "./i-toys"
 import * as PAIR from "./pairings"
+import * as SECRET from "./secrets"
 import * as yargs from 'yargs'
 
 yargs.version("1.1.0")
@@ -71,6 +72,54 @@ const isqrOption: yargs.Options = {
     demandOption: false,
     type: "number",
     default: -1
+}
+
+const secretOption: yargs.Options = {
+    describe: "secret to be hidden",
+    demandOption: true,
+    type: "number"
+}
+
+const thresholdOption: yargs.Options = {
+    describe: "threshold k",
+    demandOption: true,
+    type: "number"
+}
+
+const partyOption: yargs.Options = {
+    describe: "number of participants n",
+    demandOption: true,
+    type: "number"
+}
+
+const sharesOption: yargs.Options = {
+    describe: "Array of secret shares in the format: \"[[x1,y1],[x2,y2],[x3,y3]...]\"",
+    demandOption: true,
+    type: "string"
+}
+
+// Parse array of points in text format
+// [[x1,y1],[x2,y2],[x3,y3]...]
+function parsePoints(txtPts: string): number[][] {
+
+    // Parse the input array of shares...
+    let jsonPts: any;
+    try {
+        jsonPts = JSON.parse(`{ "pts": ${txtPts}}`);
+    }
+    catch (err) {
+        throw "Invalid point array. Expected: [[x1,y1],[x2,y2],[x3,y3]...]"
+    }
+
+    const isPointArray = (arr: any[]): boolean => 
+                            (arr.length == 2) && arr.every((el) => typeof el === 'number');
+
+     if (!Array.isArray(jsonPts.pts) || 
+         !jsonPts.pts.every(Array.isArray) || 
+         !jsonPts.pts.every(isPointArray))
+         throw "Invalid point array. Expected: \"[[x1,y1],[x2,y2],[x3,y3]...]\""
+
+    return jsonPts.pts
 }
 
 yargs.command({
@@ -692,6 +741,32 @@ yargs.command({
         const ptQ = [[argv.xQpt_real,argv.xQpt_imag],[argv.yQpt_real, argv.yQpt_imag]]
         const ptR = [[argv.xRpt_real,argv.xRpt_imag],[argv.yRpt_real, argv.yRpt_imag]]
         PAIR.tatePairing(ec, ptP, ptQ, ptR, true)
+    }
+})
+
+yargs.command({
+    command: "shamirSetup",
+    describe: "Setup a k-of-n Shamir's Secret Sharing scheme",
+    builder: {
+        fieldN: fieldNOption,
+        secret: secretOption,
+        threshold: thresholdOption,
+        party: partyOption
+   },
+   handler: function (argv: any) {
+        SECRET.shamirSetup(argv.fieldN, argv.secret, argv.threshold, argv.party, true);
+   }
+})
+
+yargs.command({
+    command: "shamirRecover",
+    describe: "Recover a secret given k shares",
+    builder: {
+        fieldN: fieldNOption,
+        shares: sharesOption
+    },
+    handler: function (argv: any) {
+        SECRET.shamirRecover(argv.fieldN, parsePoints(argv.shares), true)
     }
 })
 
