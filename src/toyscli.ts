@@ -93,22 +93,23 @@ const partyOption: yargs.Options = {
 }
 
 const sharesOption: yargs.Options = {
-    describe: "Array of secret shares in the format: \"[[x1,y1],[x2,y2],[x3,y3]...]\"",
+    describe: "List of secret shares in the format: \"(x1,y1), (x2,y2), (x3,y3)\"",
     demandOption: true,
     type: "string"
 }
 
 // Parse array of points in text format
-// [[x1,y1],[x2,y2],[x3,y3]...]
+// (x1,y1), (x2,y2), (x3,y3)...
 function parsePoints(txtPts: string): number[][] {
 
+    txtPts =  '[' + txtPts.replace(/\(/g, '[').replace(/\)/g, ']') + ']'
     // Parse the input array of shares...
     let jsonPts: any;
     try {
         jsonPts = JSON.parse(`{ "pts": ${txtPts}}`);
     }
     catch (err) {
-        throw "Invalid point array. Expected: [[x1,y1],[x2,y2],[x3,y3]...]"
+        throw "Invalid point array. Expected: \"(x1,y1), (x2,y2), (x3,y3)\""
     }
 
     const isPointArray = (arr: any[]): boolean => 
@@ -117,7 +118,7 @@ function parsePoints(txtPts: string): number[][] {
      if (!Array.isArray(jsonPts.pts) || 
          !jsonPts.pts.every(Array.isArray) || 
          !jsonPts.pts.every(isPointArray))
-         throw "Invalid point array. Expected: \"[[x1,y1],[x2,y2],[x3,y3]...]\""
+         throw "Invalid point array. Expected: \"(x1,y1), (x2,y2), (x3,y3)\""
 
     return jsonPts.pts
 }

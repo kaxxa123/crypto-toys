@@ -44,7 +44,7 @@
     "tate":      "node ./build/src/toyscli.js tate      --fieldN 19 --coeffA 14 --coeffB 3  --rorder 5  --xPpt_real 17 --xPpt_imag 0 --yPpt_real  9 --yPpt_imag 0      --xQpt_real 16 --xQpt_imag  0 --yQpt_real  0 --yQpt_imag 16    --xRpt_real 18 --xRpt_imag  2 --yRpt_real 14 --yRpt_imag  5",
 
     "shamirSetup": "node ./build/src/toyscli.js shamirSetup --fieldN 101 --secret 73 --threshold 3 --party 5",
-    "shamirRecover": "node ./build/src/toyscli.js shamirRecover --fieldN 101 --shares \"[[27,74], [17,40], [66,16]]\""
+    "shamirRecover": "node ./build/src/toyscli.js shamirRecover --fieldN 101 --shares \"(27,74), (17,40), (66,16)\""
   },
   "repository": {
     "type": "git",
