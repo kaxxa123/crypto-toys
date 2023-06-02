@@ -24,6 +24,40 @@ export enum ReqEC {
     NABR,   // require fieldN, coeffA, coeffB, rorder
 }
 
+// Pedersen Commitment EC points G and H where
+// E = s.G + t.H
+export interface PCommit {
+    ptG: number[][],
+    ptH: number[][]
+}
+
+// Pedersen VSS Setup Params
+export interface PVSS { 
+    partyShares: Map<number, number[]>, 
+    commitments: number[][][] 
+}
+
+// Pedersen MPC - 1 Party Setup
+export interface PMPCParty { 
+    id: number,
+    secret: number,
+    vss: PVSS
+}
+
+// Pedersen MPC - Info recevied by 1 party for other parties
+export interface PMPCPartyShares { 
+    id: number,                     // Party Id
+    shares: number[][],             // Shares received from other Parties
+    commitSets: number[][][][]      // Commitments received from other Parties
+}
+
+// Pedersen MPC - Aggregated info recevied by 1 party for other parties
+export interface PMPCPartyAggr { 
+    id: number,                    // Party Id
+    share: number[],               // Aggregated secret share
+    commitments: number[][][]      // Aggregated commitments
+}
+
 export function unpackEC(ec: ECurve, req: ReqEC): ECurveDef {
 
     if ((req > ReqEC.N) && (ec.coeffA === undefined))
