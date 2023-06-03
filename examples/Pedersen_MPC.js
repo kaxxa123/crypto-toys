@@ -46,7 +46,11 @@ async function  main() {
     console.log("* * * * * * * * * * * * * * * * * * *")
     shares  = secret.pedersenMPC_ExtractShares(allAggr)
     subset  = secret.getShareSubset(shares, 3)
-    theSecret2 = secret.shamirRecover(ec.rorder, subset, true)
+    console.log()
+    console.log("Verifying using share subset:")
+    console.log(subset)
+    console.log()
+    theSecret2 = secret.pedersenVSS_Recover(ec, ped, subset, allAggr[0].commitments ,true)
 
     assert(theSecret == theSecret2, "Recovered secret does not match original!")
 }

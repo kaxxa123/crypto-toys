@@ -347,10 +347,30 @@ export function pedersenVSS_AllPartiesVerify(
 // This allows us to recover the secret using shamirRecover
 export function pedersenVSS_Shares(vss: PVSS): number[][] {
     let shares: number[][] = []
-    vss.partyShares.forEach((pShare,pid) => shares.push([pid, pShare[0]]))
+    vss.partyShares.forEach((pShare,pid) => shares.push([pid, pShare[0], pShare[1]]))
 
     return shares
 }
+
+// Verify k secret shares and Recover the secret.
+// Since verification relies on publicly broadcasted
+// commitments, recovery can verify that no party 
+// provides an invalid share.
+export function pedersenVSS_Recover(
+    ec: ECurve, 
+    ped: PCommit,
+    shares: number[][],
+    commitments: number[][][],
+    verbose: boolean = false): number {
+
+    let {rorder} = unpackEC(ec, ReqEC.NABR);
+
+    if (!shares.every((oneShare) => pedersenVSS_1PartyVerify(ec, ped, oneShare[0], oneShare[1], oneShare[2], commitments, verbose)))
+        throw "Verification Failed!"
+
+    return shamirRecover(rorder, shares, true)
+}
+
 
 // Initialize a Pedersen Verifiable Secret Sharing k-of-n scheme MPC
 // for a single party. This should be called 1x by each party.
@@ -564,6 +584,6 @@ export function pedersenMPC_AllAggr(
 export function pedersenMPC_ExtractShares(allAggr: PMPCPartyAggr[]): number[][] {
     let shares: number[][] = []
 
-    allAggr.forEach(oneAggr => shares.push([oneAggr.id, oneAggr.share[0]]))
+    allAggr.forEach(oneAggr => shares.push([oneAggr.id, oneAggr.share[0], oneAggr.share[1]]))
     return shares;
 }

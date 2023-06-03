@@ -32,10 +32,13 @@ async function  main() {
     secret.pedersenVSS_AllPartiesVerify(ec, ped, vss, true)
 
     // Recover the secret
-    console.log()
     shares = secret.pedersenVSS_Shares(vss)
     subset = secret.getShareSubset(shares, vss.commitments.length)
-    theSecret2 = secret.shamirRecover(ec.rorder, subset, true)
+    console.log()
+    console.log("Verifying using share subset:")
+    console.log(subset)
+    console.log()
+    theSecret2 = secret.pedersenVSS_Recover(ec, ped, subset, vss.commitments ,true)
 
     assert(theSecret == theSecret2, "Recovered secret does not match original!")
 }
